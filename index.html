@@ -1,0 +1,2964 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#002B49">
+    <title>PREMO Tidrapport</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        premo: {
+                            navy: '#002B49',
+                            navyDark: '#001B2E',
+                            orange: '#FF5A00',
+                            orangeHover: '#E04F00',
+                            blue: '#0077C8',
+                            blueHover: '#0062A6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .print-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- POWIADOMIENIA TOAST -->
+    <div id="toastBox" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+    <!-- NAGŁÓWEK APLIKACJI -->
+    <header class="bg-premo-navy text-white shadow-lg sticky top-0 z-30 no-print border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-premo-orange flex items-center justify-center font-black text-white text-lg shrink-0 shadow">
+                    P
+                </div>
+                <div class="truncate">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-extrabold tracking-tight text-base sm:text-lg">PREMO</span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-premo-blue/40 text-sky-200">Tidrapport</span>
+                    </div>
+                    <p id="headerUserSubtitle" class="text-[11px] text-slate-300 truncate" data-i18n="app_subtitle">System czasu pracy • Tidningsbud</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <!-- Języki PL / SV / EN -->
+                <div class="flex rounded-xl bg-premo-navyDark p-0.5 border border-white/10 text-xs font-bold">
+                    <button onclick="setLanguage('pl')" id="lang-pl" class="px-2 py-1 rounded-lg transition cursor-pointer">PL</button>
+                    <button onclick="setLanguage('sv')" id="lang-sv" class="px-2 py-1 rounded-lg transition cursor-pointer">SV</button>
+                    <button onclick="setLanguage('en')" id="lang-en" class="px-2 py-1 rounded-lg transition cursor-pointer">EN</button>
+                </div>
+
+                <!-- Przełącznik Dark / Light -->
+                <button onclick="toggleTheme()" id="themeToggleBtn" class="w-9 h-9 rounded-xl bg-premo-navyDark hover:bg-white/10 border border-white/10 flex items-center justify-center transition cursor-pointer" title="Dark / Light Mode">
+                    <svg id="iconSun" class="w-4 h-4 text-amber-400 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg id="iconMoon" class="w-4 h-4 text-sky-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+
+                <!-- Wyloguj -->
+                <button onclick="logout()" id="btnLogout" class="hidden px-2.5 sm:px-3 h-9 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold items-center gap-1.5 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span class="hidden sm:inline" data-i18n="btn_logout">Wyloguj</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- EKRAN LOGOWANIA PIN                                                       -->
+    <!-- ========================================================================= -->
+    <main id="loginView" class="flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-premo-navy text-white flex items-center justify-center mx-auto mb-3 shadow-md border border-premo-blue/40">
+                    <svg class="w-7 h-7 text-premo-orange" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-premo-navy dark:text-white" data-i18n="login_title">Logowanie pracownika</h1>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1" data-i18n="login_subtitle">Wpisz swój 4-cyfrowy kod PIN, aby rozpocząć</p>
+            </div>
+
+            <div class="flex justify-center gap-4 mb-2" id="pinDots">
+                <div class="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 transition-all"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 transition-all"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 transition-all"></div>
+                <div class="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 transition-all"></div>
+            </div>
+            <p id="loginErrorMsg" class="text-center text-xs font-bold text-rose-500 h-5 mb-3"></p>
+
+            <div class="grid grid-cols-3 gap-2.5 sm:gap-3 max-w-xs mx-auto mb-6">
+                <button onclick="pressPinDigit('1')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">1</button>
+                <button onclick="pressPinDigit('2')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">2</button>
+                <button onclick="pressPinDigit('3')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">3</button>
+                <button onclick="pressPinDigit('4')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">4</button>
+                <button onclick="pressPinDigit('5')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">5</button>
+                <button onclick="pressPinDigit('6')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">6</button>
+                <button onclick="pressPinDigit('7')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">7</button>
+                <button onclick="pressPinDigit('8')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">8</button>
+                <button onclick="pressPinDigit('9')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">9</button>
+                <button onclick="clearPin()" class="h-14 rounded-2xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-rose-500/20 text-xs font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition cursor-pointer">C</button>
+                <button onclick="pressPinDigit('0')" class="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white active:scale-95 text-xl font-bold transition cursor-pointer">0</button>
+                <button onclick="backspacePin()" class="h-14 rounded-2xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-amber-500/20 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition cursor-pointer" aria-label="Backspace">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+                </button>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-2.5">
+                    <p class="text-[11px] uppercase tracking-wider font-bold text-slate-400" data-i18n="demo_accounts_hint">Konta testowe (kliknij, aby zalogować):</p>
+                    <button type="button" onclick="syncUsersFromGoogleSheets(true)" id="btnRefreshLoginUsers" class="text-[11px] font-bold text-premo-blue hover:underline flex items-center gap-1 cursor-pointer">
+                        <span>↻</span> <span data-i18n="btn_refresh_users">Odśwież konta</span>
+                    </button>
+                </div>
+                <div class="flex flex-wrap justify-center gap-2" id="demoChipsContainer"></div>
+                <p id="loginSyncStatus" class="text-[10px] text-center text-slate-400 mt-2.5"></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- GŁÓWNY PANEL APLIKACJI (PO ZALOGOWANIU)                                   -->
+    <!-- ========================================================================= -->
+    <div id="appView" class="hidden flex-1 flex flex-col">
+        <nav class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 no-print">
+            <div class="max-w-5xl mx-auto px-3 sm:px-6 flex items-center justify-between overflow-x-auto">
+                <div class="flex gap-1 py-2">
+                    <button onclick="switchTab('timer')" id="tab-timer" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span data-i18n="nav_timer">Stoper</span>
+                    </button>
+                    <button onclick="switchTab('reports')" id="tab-reports" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        <span data-i18n="nav_reports">Raporty</span>
+                    </button>
+                    <button onclick="switchTab('team')" id="tab-team" class="hidden px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold items-center gap-2 transition whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span data-i18n="nav_team">Zespół</span>
+                    </button>
+                    <button onclick="switchTab('sheets')" id="tab-sheets" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span data-i18n="nav_settings">Ustawienia & Google Sheets</span>
+                        <span id="pendingSyncBadge" class="hidden px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500 text-white font-extrabold">0</span>
+                    </button>
+                </div>
+
+                <div id="loggedUserBadge" class="hidden md:flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0"></div>
+            </div>
+        </nav>
+
+        <main class="max-w-5xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-6 flex-1">
+
+            <!-- ================================================================= -->
+            <!-- ZAKŁADKA 1: PODWÓJNY STOPER (SORTOWANIE + DYSTRYBUCJA Z TRASAMI)   -->
+            <!-- ================================================================= -->
+            <section id="section-timer" class="space-y-5">
+
+                <!-- 1. GÓRNY KOMPAKTOWY LICZNIK: SORTOWANIE PRZESYŁEK (BEZ POLA UWAG) -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-sm border-2 border-premo-blue/40 dark:border-premo-blue/50">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span id="sortStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                            <h2 class="font-extrabold text-sm sm:text-base text-premo-navy dark:text-white flex items-center gap-2">
+                                <svg class="w-4 h-4 text-premo-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                                <span data-i18n="sort_card_title">Sortowanie przesyłek</span>
+                            </h2>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full bg-premo-blue/15 text-premo-blue dark:text-sky-300 border border-premo-blue/30 text-[11px] font-extrabold tracking-wide" data-i18n="paid_separately_badge">
+                            Płatne osobno
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950/70 rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800">
+                        <div>
+                            <div id="sortClockDisplay" class="font-mono tabular-nums text-3xl sm:text-4xl font-black tracking-tight text-premo-blue dark:text-sky-400">
+                                00:00:00
+                            </div>
+                            <p id="sortStartMeta" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" data-i18n="sort_ready_hint">Przed rozpoczęciem dystrybucji</p>
+                        </div>
+
+                        <div class="shrink-0">
+                            <button id="btnSortStart" onclick="startSortingTimer()" class="py-3.5 px-5 sm:px-6 rounded-2xl bg-premo-blue hover:bg-premo-blueHover active:scale-[0.98] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-premo-blue/25 transition flex items-center justify-center gap-2 cursor-pointer">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span data-i18n="btn_start_sorting">START SORTOWANIE</span>
+                            </button>
+
+                            <button id="btnSortStop" onclick="stopAndSaveSortingTimer()" class="hidden py-3.5 px-5 sm:px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-rose-600/25 transition flex items-center justify-center gap-2 cursor-pointer">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                                <span data-i18n="btn_stop_sorting">STOP & ZAPISZ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. GŁÓWNY LICZNIK: DYSTRYBUCJA / TRASA GŁÓWNA -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span id="timerStatusDot" class="w-3 h-3 rounded-full bg-slate-400"></span>
+                            <span class="font-extrabold text-sm sm:text-base text-premo-navy dark:text-white" data-i18n="dist_card_title">Dystrybucja / Trasa główna</span>
+                            <span class="text-slate-300 dark:text-slate-700">•</span>
+                            <span id="timerStatusText" class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" data-i18n="status_ready">Gotowy do pracy</span>
+                        </div>
+                        <span id="currentDateDisplay" class="text-xs font-semibold text-slate-400"></span>
+                    </div>
+
+                    <!-- Zegar główny (FAKTYCZNY CZAS PRACY) -->
+                    <div class="text-center py-4 sm:py-6 bg-slate-50 dark:bg-slate-950/70 rounded-2xl border border-slate-200/80 dark:border-slate-800 mb-5">
+                        <div id="timerClockDisplay" class="font-mono tabular-nums text-5xl sm:text-7xl font-black tracking-tight text-premo-navy dark:text-white">
+                            00:00:00
+                        </div>
+                        <p id="timerStartMeta" class="text-xs text-slate-500 dark:text-slate-400 mt-2 h-4"></p>
+                    </div>
+
+                    <!-- Sekcja wyboru tras (max 4 trasy + procenty) -->
+                    <div class="mb-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-xs font-extrabold uppercase tracking-wider text-premo-navy dark:text-slate-200" data-i18n="routes_selection_title">Trasy / Rejony (max. 4)</h3>
+                                <p class="text-[11px] text-slate-400" data-i18n="routes_selection_hint">Wybierz pełne (100%) lub częściowe (%) trasy na dzisiejszą zmianę</p>
+                            </div>
+                            <button type="button" id="btnAddActiveRoute" onclick="addActiveRouteRow()" class="px-3 py-1.5 rounded-xl bg-premo-blue hover:bg-premo-blueHover text-white text-xs font-bold transition cursor-pointer shrink-0">
+                                + <span data-i18n="btn_add_route">Dodaj trasę</span>
+                            </button>
+                        </div>
+
+                        <div id="activeRoutesList" class="space-y-2"></div>
+
+                        <!-- ODSEPAROWANY BOX INFORMACYJNY: TYLKO PODGLĄD SZACOWANEGO CZASU TRAS -->
+                        <div class="p-3.5 rounded-xl bg-slate-100/80 dark:bg-slate-950/80 border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-extrabold uppercase tracking-wider" data-i18n="est_only_info_badge">
+                                        TYLKO INFORMACYJNIE – NIE WLICZA SIĘ DO CZASU PRACY
+                                    </span>
+                                </div>
+                                <p class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="est_time_title">
+                                    Szacowany czas wybranych tras (normatywny):
+                                </p>
+                            </div>
+                            <div class="text-left sm:text-right shrink-0">
+                                <span id="activeEstimatedHM" class="font-mono font-extrabold text-base sm:text-lg text-slate-600 dark:text-slate-300">0h 00m</span>
+                                <span id="activeEstimatedDec" class="block font-mono text-[11px] text-slate-400">(0.00 h)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Przyciski sterujące dystrybucją -->
+                    <div id="controlsIdle" class="space-y-3">
+                        <button onclick="startTimer()" class="w-full py-4 sm:py-5 px-6 rounded-2xl bg-premo-orange hover:bg-premo-orangeHover active:scale-[0.99] text-white font-extrabold text-lg sm:text-xl shadow-lg shadow-premo-orange/25 transition flex items-center justify-center gap-3 cursor-pointer">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span data-i18n="btn_start">START PRACY</span>
+                        </button>
+                        <button onclick="openShiftModal()" class="w-full py-3.5 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue/15 text-premo-navy dark:text-sky-300 border border-slate-200 dark:border-slate-700 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4 text-premo-blue" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            <span data-i18n="btn_add_manual_quick">+ Dodaj zmianę ręcznie (zapomniany start/stop)</span>
+                        </button>
+                    </div>
+
+                    <div id="controlsRunning" class="hidden space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="togglePauseTimer()" id="btnPause" class="py-4 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer">
+                                <span id="btnPauseLabel" data-i18n="btn_pause">PAUZA</span>
+                            </button>
+                            <button onclick="openFinishTimerModal()" class="py-4 px-5 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg shadow-lg shadow-rose-600/20 transition flex items-center justify-center gap-2 cursor-pointer">
+                                <span data-i18n="btn_stop">STOP / ZAKOŃCZ</span>
+                            </button>
+                        </div>
+                        <button onclick="openShiftModal()" class="w-full py-2.5 px-4 rounded-xl bg-slate-100/80 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                            <span data-i18n="btn_add_manual_short">+ Dodaj zaległą zmianę ręcznie</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista ostatnich zmian zalogowanego pracownika -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-extrabold text-base sm:text-lg text-premo-navy dark:text-white" data-i18n="recent_shifts_title">Ostatnie zmiany</h2>
+                        <button onclick="switchTab('reports')" class="text-xs font-bold text-premo-blue hover:underline cursor-pointer" data-i18n="see_all">Zobacz raporty →</button>
+                    </div>
+                    <div id="recentShiftsList" class="space-y-2.5"></div>
+                </div>
+            </section>
+
+            <!-- ================================================================= -->
+            <!-- ZAKŁADKA 2: RAPORTY MIESIĘCZNE I WYKRESY                          -->
+            <!-- ================================================================= -->
+            <section id="section-reports" class="hidden space-y-6">
+                <!-- Pasek filtrów i akcji -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-wrap items-end justify-between gap-3 no-print">
+                    <div class="flex flex-wrap items-end gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1" data-i18n="select_month">Miesiąc</label>
+                            <input type="month" id="reportMonthInput" onchange="renderReports()" class="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-bold text-slate-800 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1" data-i18n="work_type_label">Rodzaj pracy</label>
+                            <select id="reportWorkTypeFilter" onchange="renderReports()" class="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-bold text-slate-800 dark:text-white">
+                                <option value="ALL" data-i18n="filter_all_types">Wszystkie (Dystrybucja + Sortowanie)</option>
+                                <option value="distribution" data-i18n="type_distribution">Dystrybucja</option>
+                                <option value="sorting" data-i18n="type_sorting">Sortowanie (płatne osobno)</option>
+                            </select>
+                        </div>
+                        <div id="adminReportFilterBox" class="hidden">
+                            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1" data-i18n="col_employee">Pracownik</label>
+                            <select id="reportEmployeeFilter" onchange="renderReports()" class="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-bold text-slate-800 dark:text-white"></select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openShiftModal()" class="px-3.5 py-2 rounded-xl bg-premo-orange hover:bg-premo-orangeHover text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                            <span>+</span><span data-i18n="btn_add_manual">Dodaj ręcznie</span>
+                        </button>
+                        <button onclick="pullFromGoogleSheets()" id="btnPullGoogle" class="hidden px-3.5 py-2 rounded-xl bg-premo-blue hover:bg-sky-600 text-white text-xs font-bold items-center gap-1.5 cursor-pointer">
+                            <span data-i18n="btn_pull_gs">Pobierz z Google</span>
+                        </button>
+                        <button onclick="exportReportCSV()" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer">
+                            CSV
+                        </button>
+                        <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer">
+                            Print / PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 Karty podsumowania KPI (WYŁĄCZNIE FAKTYCZNY CZAS PRACY) -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 print-card">
+                        <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="kpi_total_hours">Łączny czas pracy</p>
+                        <p id="kpiTotalHM" class="text-xl sm:text-2xl font-black text-premo-navy dark:text-white mt-1 font-mono">0h 00m</p>
+                        <p id="kpiTotalDec" class="text-xs font-bold text-emerald-500 mt-0.5">0.00 h</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 print-card">
+                        <p class="text-[11px] font-bold uppercase text-premo-orange" data-i18n="kpi_dist_hours">Dystrybucja / Trasa</p>
+                        <p id="kpiDistHM" class="text-xl sm:text-2xl font-black text-premo-navy dark:text-white mt-1 font-mono">0h 00m</p>
+                        <p id="kpiDistSub" class="text-xs font-semibold text-premo-orange mt-0.5">0.00 h • 0</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border-2 border-premo-blue/40 print-card">
+                        <p class="text-[11px] font-bold uppercase text-premo-blue dark:text-sky-400" data-i18n="kpi_sort_hours">Sortowanie (osobno)</p>
+                        <p id="kpiSortHM" class="text-xl sm:text-2xl font-black text-premo-blue dark:text-sky-400 mt-1 font-mono">0h 00m</p>
+                        <p id="kpiSortSub" class="text-xs font-semibold text-slate-400 mt-0.5">0.00 h • 0</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 print-card">
+                        <p class="text-[11px] font-bold uppercase text-slate-400" data-i18n="kpi_work_days_avg">Dni pracy / Średnia</p>
+                        <p id="kpiWorkDays" class="text-xl sm:text-2xl font-black text-premo-navy dark:text-white mt-1 font-mono">0</p>
+                        <p id="kpiAvgShift" class="text-xs text-slate-400 mt-0.5">Ø 0h 00m</p>
+                    </div>
+                </div>
+
+                <!-- Wykresy SVG / HTML (WYŁĄCZNIE FAKTYCZNY CZAS PRACY) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 print-card">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <h3 class="font-extrabold text-sm text-premo-navy dark:text-white" data-i18n="chart_daily_title">Faktyczne godziny w dniach miesiąca</h3>
+                            <div class="flex items-center gap-3 text-[11px] font-bold">
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-premo-orange inline-block"></span><span data-i18n="type_distribution">Dystrybucja</span></span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-premo-blue inline-block"></span><span data-i18n="type_sorting_short">Sortowanie</span></span>
+                            </div>
+                        </div>
+                        <div id="dailySvgChartContainer" class="w-full overflow-x-auto"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 print-card">
+                        <h3 id="breakdownChartTitle" class="font-extrabold text-sm text-premo-navy dark:text-white mb-4" data-i18n="chart_types_title">Podział: Dystrybucja vs Sortowanie</h3>
+                        <div id="breakdownBarChart" class="space-y-3.5"></div>
+                    </div>
+                </div>
+
+                <!-- Tabela szczegółowa zmian -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden print-card">
+                    <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <h3 class="font-extrabold text-base text-premo-navy dark:text-white" data-i18n="table_history_title">Wykaz zmian</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 dark:bg-slate-950/60 text-[11px] uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                                    <th id="thAdminEmployee" class="py-3 px-4 font-bold hidden" data-i18n="col_employee">Pracownik</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_date">Data</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_hours">Start - Koniec</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_duration">Faktyczny czas</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="work_type_label">Rodzaj pracy</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_routes_pct">Trasy / Udział %</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_est_info">Szacowany (info)</th>
+                                    <th class="py-3 px-4 font-bold" data-i18n="col_source">Źródło</th>
+                                    <th class="py-3 px-4 font-bold text-right no-print" data-i18n="col_actions">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                    <div id="reportEmptyState" class="hidden p-8 text-center text-sm text-slate-400" data-i18n="no_shifts_month">
+                        Brak zarejestrowanych zmian w wybranym miesiącu.
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================================================================= -->
+            <!-- ZAKŁADKA 3: ZARZĄDZANIE ZESPOŁEM (TYLKO ADMIN)                    -->
+            <!-- ================================================================= -->
+            <section id="section-team" class="hidden space-y-6">
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h2 class="font-extrabold text-lg text-premo-navy dark:text-white" data-i18n="team_title">Zespół PREMO (Konta i PIN)</h2>
+                            <p class="text-xs text-slate-400" data-i18n="team_subtitle">Zarządzaj pracownikami, uprawnieniami i kodami PIN</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="copyAppsScript()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer">
+                                📋 <span data-i18n="btn_copy_code">Kopiuj kod</span>
+                            </button>
+                            <button onclick="syncUsersFromGoogleSheets(true)" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer">
+                                ↻ <span data-i18n="btn_pull_team_gs">Pobierz z Google</span>
+                            </button>
+                            <button onclick="pushUsersToGoogleSheets()" class="px-4 py-2.5 rounded-xl bg-premo-blue hover:bg-premo-blueHover text-white text-xs font-bold cursor-pointer">
+                                ☁ <span data-i18n="btn_save_team_gs">Zapisz zespół w Google</span>
+                            </button>
+                            <button onclick="openUserModal()" class="px-4 py-2.5 rounded-xl bg-premo-orange hover:bg-premo-orangeHover text-white text-xs font-bold cursor-pointer">
+                                + <span data-i18n="btn_add_user">Dodaj pracownika</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="teamSyncDiagnosticBox" class="hidden mb-4 p-3.5 rounded-2xl text-xs font-semibold border"></div>
+                    <div id="teamUsersList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+            </section>
+
+            <!-- ================================================================= -->
+            <!-- ZAKŁADKA 4: BAZA TRAS (REJONÓW) & GOOGLE SHEETS                   -->
+            <!-- ================================================================= -->
+            <section id="section-sheets" class="hidden space-y-6">
+
+                <!-- Baza tras i czasów orientacyjnych -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-extrabold text-lg text-premo-navy dark:text-white" data-i18n="routes_db_title">Baza tras i czasów szacowanych (Distrikt)</h2>
+                            <p class="text-xs text-slate-400 mt-0.5" data-i18n="routes_db_subtitle">Czasy orientacyjne poszczególnych rejonów (gotowe pod warianty sezonowe)</p>
+                        </div>
+                        <button id="btnAddRouteDef" onclick="openRouteDefModal()" class="hidden px-4 py-2 rounded-xl bg-premo-blue hover:bg-premo-blueHover text-white text-xs font-bold cursor-pointer">
+                            + <span data-i18n="btn_new_route_def">Dodaj trasę do bazy</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 dark:bg-slate-950/60 text-[11px] uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                                    <th class="py-2.5 px-3 font-bold" data-i18n="col_route_code">Nr trasy</th>
+                                    <th class="py-2.5 px-3 font-bold" data-i18n="col_route_name">Nazwa rejonu</th>
+                                    <th class="py-2.5 px-3 font-bold" data-i18n="col_route_base_time">Czas 100%</th>
+                                    <th class="py-2.5 px-3 font-bold" data-i18n="col_route_season">Sezon / Wariant</th>
+                                    <th id="thRouteActions" class="py-2.5 px-3 font-bold text-right hidden" data-i18n="col_actions">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="routesDefTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Konfiguracja Google Sheets Webhook -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div>
+                        <h2 class="font-extrabold text-lg text-premo-navy dark:text-white">Google Sheets Webhook</h2>
+                        <p class="text-xs text-slate-400 mt-0.5" data-i18n="gs_subtitle">Adres wdrożonej aplikacji internetowej Google Apps Script (wpisany na stałe)</p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="url" id="googleWebhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-mono text-slate-800 dark:text-white">
+                        <button onclick="saveGoogleWebhook()" class="px-4 py-2.5 rounded-xl bg-premo-navy hover:bg-premo-blue text-white text-xs font-bold cursor-pointer" data-i18n="btn_save">Zapisz</button>
+                        <button onclick="resetDefaultWebhook()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer" data-i18n="btn_reset_default">Domyślny URL</button>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <p id="pendingQueueInfo" class="text-xs font-semibold text-slate-500">Oczekujące wpisy offline: 0</p>
+                        <button onclick="syncAllPending()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer" data-i18n="btn_sync_all">
+                            Wyślij oczekujące teraz
+                        </button>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-sm font-extrabold text-premo-navy dark:text-white">Google Apps Script (Kod do Arkusza Google)</h3>
+                                <p class="text-[11px] text-slate-400">Wklej ten kod w Arkuszu Google: Rozszerzenia → Apps Script → Wdróż jako nową wersję</p>
+                            </div>
+                            <button type="button" onclick="copyAppsScript()" class="px-4 py-2 rounded-xl bg-premo-orange hover:bg-premo-orangeHover text-white text-xs font-extrabold shadow transition flex items-center gap-1.5 cursor-pointer">
+                                <span>📋</span>
+                                <span data-i18n="btn_copy_code">Kopiuj kod</span>
+                            </button>
+                        </div>
+                        <pre id="appsScriptCode" class="p-4 rounded-2xl bg-slate-950 text-sky-300 text-xs font-mono overflow-x-auto leading-relaxed"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 1: RĘCZNE DODAWANIE / EDYCJA / ZAKOŃCZENIE ZMIANY                   -->
+    <!-- ========================================================================= -->
+    <div id="shiftModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="shiftModalTitle" class="text-lg font-extrabold text-premo-navy dark:text-white" data-i18n="manual_modal_title">Dodaj zmianę ręcznie</h3>
+                <button onclick="closeShiftModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 cursor-pointer">✕</button>
+            </div>
+
+            <input type="hidden" id="modalShiftId">
+            <input type="hidden" id="modalShiftMode" value="manual">
+            <input type="hidden" id="modalWorkTypeValue" value="distribution">
+
+            <div class="space-y-3.5 mb-5">
+                <!-- Wybór typu pracy: Dystrybucja vs Sortowanie -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5" data-i18n="work_type_label">Rodzaj pracy</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="pillTypeDist" onclick="selectModalWorkType('distribution')" class="py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 transition cursor-pointer">
+                            <span data-i18n="type_distribution">Dystrybucja</span>
+                        </button>
+                        <button type="button" id="pillTypeSort" onclick="selectModalWorkType('sorting')" class="py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 transition cursor-pointer">
+                            <span data-i18n="type_sorting_short">Sortowanie</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sekcja tras w modalu (widoczna dla Dystrybucji, max 4) -->
+                <div id="modalRoutesSection" class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-300" data-i18n="routes_selection_title">Trasy / Rejony (max. 4)</span>
+                        <button type="button" id="btnAddModalRoute" onclick="addModalRouteRow()" class="px-2.5 py-1 rounded-lg bg-premo-blue text-white text-[11px] font-bold cursor-pointer">
+                            + <span data-i18n="btn_add_route">Dodaj trasę</span>
+                        </button>
+                    </div>
+                    <div id="modalRoutesList" class="space-y-2"></div>
+                    <div class="flex items-center justify-between pt-2 border-t border-dashed border-slate-300 dark:border-slate-700 text-xs">
+                        <span class="text-slate-400 font-semibold" data-i18n="est_time_modal_info">Szacowany czas tras (tylko podgląd):</span>
+                        <span id="modalEstimatedPreview" class="font-mono font-bold text-slate-500 dark:text-slate-300">0h 00m (0.00 h)</span>
+                    </div>
+                </div>
+
+                <!-- Pracownik -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_employee">Pracownik</label>
+                    <select id="modalEmployeeSelect" class="hidden w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold text-slate-800 dark:text-white"></select>
+                    <div id="modalEmployeeLocked" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-sm font-bold text-slate-700 dark:text-slate-200"></div>
+                </div>
+
+                <!-- Data + szybkie przyciski Wczoraj / Dzisiaj -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase text-slate-400" data-i18n="col_date">Data</label>
+                        <div class="flex gap-1.5">
+                            <button type="button" onclick="setModalQuickDate(-1)" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-bold hover:bg-premo-orange hover:text-white transition cursor-pointer" data-i18n="btn_yesterday">Wczoraj</button>
+                            <button type="button" onclick="setModalQuickDate(0)" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-bold hover:bg-premo-blue hover:text-white transition cursor-pointer" data-i18n="btn_today">Dzisiaj</button>
+                        </div>
+                    </div>
+                    <input type="date" id="modalDate" oninput="updateModalDurationPreview()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold text-slate-800 dark:text-white">
+                </div>
+
+                <!-- Godziny Start, Koniec, Pauza -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_start">Start</label>
+                        <input type="time" id="modalStart" value="01:30" oninput="updateModalDurationPreview()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-2.5 text-sm font-bold text-slate-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_end">Koniec</label>
+                        <input type="time" id="modalEnd" value="06:15" oninput="updateModalDurationPreview()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-2.5 text-sm font-bold text-slate-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="pause_min_label">Pauza (m)</label>
+                        <input type="number" id="modalPause" value="0" min="0" max="480" oninput="updateModalDurationPreview()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-2.5 text-sm font-bold text-slate-800 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Podgląd wyliczonego czasu faktycznego netto do zapisu -->
+                <div class="p-3.5 rounded-2xl bg-premo-navy/10 dark:bg-slate-950 border border-premo-orange/50">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-600 dark:text-slate-300" data-i18n="calculated_time">Faktyczny czas pracy do zapisu:</span>
+                        <span id="modalDurationPreview" class="font-mono font-extrabold text-base text-premo-orange">4h 45m (4.75 h)</span>
+                    </div>
+                    <p id="modalOvernightBadge" class="hidden text-[11px] font-bold text-sky-400 mt-1.5" data-i18n="overnight_hint">
+                        🌙 Zmiana nocna +1 dzień – zakończenie po północy (+24h)
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeShiftModal()" class="py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-sm cursor-pointer" data-i18n="btn_cancel">Anuluj</button>
+                <button onclick="saveShiftFromModal()" class="py-3 rounded-xl bg-premo-orange hover:bg-premo-orangeHover text-white font-bold text-sm cursor-pointer" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 2: DODAWANIE / EDYCJA PRACOWNIKA (ADMIN)                            -->
+    <!-- ========================================================================= -->
+    <div id="userModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-extrabold text-premo-navy dark:text-white" data-i18n="user_modal_title">Dane pracownika</h3>
+                <button onclick="closeUserModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 cursor-pointer">✕</button>
+            </div>
+            <input type="hidden" id="editUserId">
+            <div class="space-y-3 mb-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="user_name_label">Imię i nazwisko</label>
+                    <input type="text" id="userNameInput" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="user_emp_no">Nr pracownika</label>
+                        <input type="text" id="userEmpNoInput" placeholder="1099" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">PIN (4 cyfry)</label>
+                        <input type="text" id="userPinInput" maxlength="4" pattern="[0-9]{4}" placeholder="3333" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-mono font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_role">Rola</label>
+                    <select id="userRoleInput" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm font-bold">
+                        <option value="USER">USER (Kurier)</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeUserModal()" class="py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-sm cursor-pointer" data-i18n="btn_cancel">Anuluj</button>
+                <button onclick="saveUserFromModal()" class="py-3 rounded-xl bg-premo-orange hover:bg-premo-orangeHover text-white font-bold text-sm cursor-pointer" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 3: DODAWANIE / EDYCJA TRASY W BAZIE (ADMIN)                         -->
+    <!-- ========================================================================= -->
+    <div id="routeDefModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-extrabold text-premo-navy dark:text-white" data-i18n="route_def_modal_title">Parametry trasy (Distrikt)</h3>
+                <button onclick="closeRouteDefModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 cursor-pointer">✕</button>
+            </div>
+            <input type="hidden" id="editRouteDefId">
+            <div class="space-y-3 mb-5">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_route_code">Nr trasy</label>
+                        <input type="text" id="routeCodeInput" placeholder="178-06" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="route_minutes_label">Czas 100% (minuty)</label>
+                        <input type="number" id="routeBaseMinutesInput" min="15" max="720" placeholder="240" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-mono font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_route_name">Nazwa rejonu</label>
+                    <input type="text" id="routeNameInput" placeholder="np. Adelsö / Munsö" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1" data-i18n="col_route_season">Sezon / Wariant normatywny</label>
+                    <input type="text" id="routeSeasonInput" value="Standard (Cały rok)" class="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-sm font-bold">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeRouteDefModal()" class="py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-sm cursor-pointer" data-i18n="btn_cancel">Anuluj</button>
+                <button onclick="saveRouteDefFromModal()" class="py-3 rounded-xl bg-premo-blue hover:bg-premo-blueHover text-white font-bold text-sm cursor-pointer" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 4: POTWIERDZENIE USUNIĘCIA UŻYTKOWNIKA (ADMIN)                      -->
+    <!-- ========================================================================= -->
+    <div id="deleteUserConfirmModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl font-black">
+                ✕
+            </div>
+            <h3 class="text-lg font-extrabold text-premo-navy dark:text-white mb-1" data-i18n="delete_user_title">Usunąć pracownika?</h3>
+            <p id="deleteUserConfirmText" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5"></p>
+            <input type="hidden" id="deleteUserTargetId">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeDeleteUserModal()" class="py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-sm cursor-pointer" data-i18n="btn_cancel">Anuluj</button>
+                <button onclick="confirmDeleteUser()" class="py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm cursor-pointer" data-i18n="btn_delete">Usuń</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- LOGIKA APLIKACJI JAVASCRIPT                                               -->
+    <!-- ========================================================================= -->
+    <script>
+        const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWXCqx_27D6FpmkCZladB1pWAlxs9H3xjj6MFKbuxMKu7BiAO8aIDHDdla7Eg7sGHmCg/exec';
+
+        const STORAGE_KEYS = {
+            USERS: 'premo_tid_users_v6',
+            ROUTES: 'premo_tid_routes_v6',
+            SHIFTS: 'premo_tid_shifts_v6',
+            TIMERS: 'premo_tid_timers_v6',
+            SORT_TIMERS: 'premo_tid_sort_timers_v6',
+            SESSION: 'premo_tid_session_v6',
+            LANG: 'premo_tid_lang_v6',
+            THEME: 'premo_tid_theme_v6',
+            WEBHOOK: 'premo_tid_webhook_v6'
+        };
+
+        const DEFAULT_USERS = [
+            { id: 'u_jarek', name: 'Jarek', employeeNumber: '1001', pin: '0000', role: 'ADMIN', active: true },
+            { id: 'u_anna', name: 'Anna', employeeNumber: '1042', pin: '1111', role: 'USER', active: true },
+            { id: 'u_marek', name: 'Marek', employeeNumber: '1087', pin: '2222', role: 'USER', active: true }
+        ];
+
+        const DEFAULT_ROUTES = [
+            { id: 'r_178_01', code: '178-01', name: 'Ekerö Centrum', baseMinutes: 240, season: 'Standard' },
+            { id: 'r_178_02', code: '178-02', name: 'Lovön', baseMinutes: 195, season: 'Standard' },
+            { id: 'r_178_05', code: '178-05', name: 'Skå / Färentuna', baseMinutes: 270, season: 'Standard' },
+            { id: 'r_174_10', code: '174-10', name: 'Barkarbystaden', baseMinutes: 210, season: 'Standard' },
+            { id: 'r_174_12', code: '174-12', name: 'Järfälla Norra', baseMinutes: 225, season: 'Standard' }
+        ];
+
+        const I18N = {
+            pl: {
+                app_subtitle: 'System czasu pracy • Tidningsbud',
+                btn_logout: 'Wyloguj',
+                login_title: 'Logowanie pracownika',
+                login_subtitle: 'Wpisz swój 4-cyfrowy kod PIN, aby rozpocząć',
+                demo_accounts_hint: 'Dostępne konta (kliknij lub wpisz PIN):',
+                btn_refresh_users: 'Odśwież konta',
+                pin_error: 'Nieprawidłowy kod PIN lub konto nieaktywne.',
+                nav_timer: 'Stoper',
+                nav_reports: 'Raporty',
+                nav_team: 'Zespół',
+                nav_settings: 'Ustawienia & Google Sheets',
+                sort_card_title: 'Sortowanie przesyłek',
+                paid_separately_badge: 'Płatne osobno',
+                sort_ready_hint: 'Przed rozpoczęciem dystrybucji',
+                sort_running_hint: 'Trwa sortowanie paczek / gazet...',
+                btn_start_sorting: 'START SORTOWANIE',
+                btn_stop_sorting: 'STOP & ZAPISZ',
+                dist_card_title: 'Dystrybucja / Trasa główna',
+                status_ready: 'Gotowy do pracy',
+                status_running: 'Trwa rejestracja trasy...',
+                status_paused: 'Zmiana wstrzymana (Pauza)',
+                routes_selection_title: 'Trasy / Rejony (max. 4)',
+                routes_selection_hint: 'Wybierz pełne (100%) lub częściowe (%) trasy na dzisiejszą zmianę',
+                btn_add_route: 'Dodaj trasę',
+                est_only_info_badge: 'TYLKO INFORMACYJNIE – NIE WLICZA SIĘ DO CZASU PRACY',
+                est_time_title: 'Szacowany czas wybranych tras (normatywny):',
+                est_time_modal_info: 'Szacowany czas tras (tylko podgląd):',
+                work_type_label: 'Rodzaj pracy',
+                filter_all_types: 'Wszystkie (Dystrybucja + Sortowanie)',
+                type_distribution: 'Dystrybucja',
+                type_sorting: 'Sortowanie (płatne osobno)',
+                type_sorting_short: 'Sortowanie',
+                btn_start: 'START PRACY',
+                btn_pause: 'PAUZA',
+                btn_resume: 'WZNÓW',
+                btn_stop: 'STOP / ZAKOŃCZ',
+                btn_add_manual_quick: '+ Dodaj zmianę ręcznie (zapomniany start/stop)',
+                btn_add_manual_short: '+ Dodaj zaległą zmianę ręcznie',
+                recent_shifts_title: 'Ostatnie zmiany',
+                see_all: 'Zobacz raporty →',
+                select_month: 'Miesiąc',
+                all_employees: 'Wszyscy pracownicy',
+                btn_add_manual: 'Dodaj ręcznie',
+                btn_pull_gs: 'Pobierz z Google',
+                kpi_total_hours: 'Łączny czas pracy',
+                kpi_dist_hours: 'Dystrybucja / Trasa',
+                kpi_sort_hours: 'Sortowanie (osobno)',
+                kpi_work_days_avg: 'Dni pracy / Średnia',
+                chart_daily_title: 'Faktyczne godziny w dniach miesiąca',
+                chart_types_title: 'Podział: Dystrybucja vs Sortowanie',
+                chart_team_title: 'Godziny wg pracownika (Dystrybucja + Sortowanie)',
+                table_history_title: 'Wykaz zmian',
+                col_employee: 'Pracownik',
+                col_date: 'Data',
+                col_hours: 'Start - Koniec',
+                col_start: 'Start',
+                col_end: 'Koniec',
+                col_duration: 'Faktyczny czas',
+                col_est_info: 'Szacowany (info)',
+                col_routes_pct: 'Trasy / Udział %',
+                col_source: 'Źródło',
+                col_actions: 'Akcje',
+                col_role: 'Rola',
+                no_shifts_month: 'Brak zarejestrowanych zmian w wybranym miesiącu.',
+                team_title: 'Zespół PREMO (Konta i PIN)',
+                team_subtitle: 'Zarządzaj pracownikami, uprawnieniami i kodami PIN',
+                btn_add_user: 'Dodaj pracownika',
+                btn_pull_team_gs: 'Pobierz z Google',
+                btn_save_team_gs: 'Zapisz zespół w Google',
+                routes_db_title: 'Baza tras i czasów szacowanych (Distrikt)',
+                routes_db_subtitle: 'Czasy orientacyjne poszczególnych rejonów (gotowe pod warianty sezonowe)',
+                btn_new_route_def: 'Dodaj trasę do bazy',
+                col_route_code: 'Nr trasy',
+                col_route_name: 'Nazwa rejonu',
+                col_route_base_time: 'Czas 100%',
+                col_route_season: 'Sezon / Wariant',
+                route_def_modal_title: 'Parametry trasy (Distrikt)',
+                route_minutes_label: 'Czas 100% (minuty)',
+                gs_subtitle: 'Adres wdrożonej aplikacji internetowej Google Apps Script (wpisany na stałe)',
+                btn_save: 'Zapisz',
+                btn_reset_default: 'Domyślny URL',
+                btn_cancel: 'Anuluj',
+                btn_sync_all: 'Wyślij oczekujące teraz',
+                btn_copy_code: 'Kopiuj kod',
+                manual_modal_title: 'Dodaj zmianę ręcznie',
+                edit_modal_title: 'Edytuj zmianę',
+                finish_modal_title: 'Zakończ i zapisz dystrybucję',
+                btn_yesterday: 'Wczoraj',
+                btn_today: 'Dzisiaj',
+                pause_min_label: 'Pauza (m)',
+                calculated_time: 'Faktyczny czas pracy do zapisu:',
+                overnight_hint: '🌙 Zmiana nocna +1 dzień – zakończenie po północy (+24h)',
+                user_modal_title: 'Dane pracownika',
+                user_name_label: 'Imię i nazwisko',
+                user_emp_no: 'Nr pracownika',
+                delete_user_title: 'Usunąć pracownika?',
+                delete_user_confirm_msg: 'Czy na pewno chcesz trwale usunąć konto:',
+                btn_delete: 'Usuń',
+                toast_user_deleted: 'Usunięto pracownika (pamiętaj zapisać zespół w Google).',
+                source_timer: 'Stoper',
+                source_manual: 'Ręczny',
+                toast_saved: 'Zapisano pomyślnie!',
+                toast_sort_saved: 'Sortowanie zapisane! Możesz teraz rozpocząć dystrybucję.',
+                toast_gs_ok: 'Wysłano do Google Sheets!',
+                toast_gs_offline: 'Zapisano lokalnie (brak połączenia z Google Sheets).'
+            },
+            sv: {
+                app_subtitle: 'Tidsrapportering • Tidningsbud',
+                btn_logout: 'Logga ut',
+                login_title: 'Personalinloggning',
+                login_subtitle: 'Ange din 4-siffriga PIN-kod för att starta',
+                demo_accounts_hint: 'Tillgängliga konton (klicka eller ange PIN):',
+                btn_refresh_users: 'Uppdatera konton',
+                pin_error: 'Felaktig PIN-kod eller inaktivt konto.',
+                nav_timer: 'Tidtagare',
+                nav_reports: 'Rapporter',
+                nav_team: 'Team',
+                nav_settings: 'Inställningar & Google Sheets',
+                sort_card_title: 'Paket- & tidningssortering',
+                paid_separately_badge: 'Betalas separat',
+                sort_ready_hint: 'Före utdelningspasset',
+                sort_running_hint: 'Sortering pågår...',
+                btn_start_sorting: 'STARTA SORTERING',
+                btn_stop_sorting: 'STOPP & SPARA',
+                dist_card_title: 'Utdelning / Huvudpass',
+                status_ready: 'Redo att starta',
+                status_running: 'Utdelning pågår...',
+                status_paused: 'Passet pausat',
+                routes_selection_title: 'Distrikt / Rutter (max 4)',
+                routes_selection_hint: 'Välj hela (100%) eller delade (%) distrikt för passet',
+                btn_add_route: 'Lägg till distrikt',
+                est_only_info_badge: 'ENDAST INFORMATION – RÄKNAS INTE IN I ARBETSTIDEN',
+                est_time_title: 'Beräknad tid för valda distrikt (normtid):',
+                est_time_modal_info: 'Beräknad distriktstid (endast förhandsvisning):',
+                work_type_label: 'Arbetstyp',
+                filter_all_types: 'Alla (Utdelning + Sortering)',
+                type_distribution: 'Utdelning',
+                type_sorting: 'Sortering (betalas separat)',
+                type_sorting_short: 'Sortering',
+                btn_start: 'STARTA PASS',
+                btn_pause: 'PAUS',
+                btn_resume: 'ÅTERUPPTA',
+                btn_stop: 'STOPP / AVSLUTA',
+                btn_add_manual_quick: '+ Lägg till pass manuellt (glömt start/stopp)',
+                btn_add_manual_short: '+ Lägg till pass manuellt',
+                recent_shifts_title: 'Senaste arbetspass',
+                see_all: 'Visa rapporter →',
+                select_month: 'Månad',
+                all_employees: 'Alla anställda',
+                btn_add_manual: 'Lägg till manuellt',
+                btn_pull_gs: 'Hämta från Google',
+                kpi_total_hours: 'Total arbetstid',
+                kpi_dist_hours: 'Utdelning / Distrikt',
+                kpi_sort_hours: 'Sortering (separat)',
+                kpi_work_days_avg: 'Arbetsdagar / Snitt',
+                chart_daily_title: 'Faktiska timmar per dag i månaden',
+                chart_types_title: 'Fördelning: Utdelning vs Sortering',
+                chart_team_title: 'Timmar per anställd (Utdelning + Sortering)',
+                table_history_title: 'Lista över arbetspass',
+                col_employee: 'Anställd',
+                col_date: 'Datum',
+                col_hours: 'Start - Slut',
+                col_start: 'Start',
+                col_end: 'Slut',
+                col_duration: 'Faktisk tid',
+                col_est_info: 'Beräknad (info)',
+                col_routes_pct: 'Distrikt / Andel %',
+                col_source: 'Källa',
+                col_actions: 'Åtgärder',
+                col_role: 'Roll',
+                no_shifts_month: 'Inga registrerade pass för vald månad.',
+                team_title: 'PREMO Team (Konton & PIN)',
+                team_subtitle: 'Hantera bud, behörigheter och PIN-koder',
+                btn_add_user: 'Lägg till anställd',
+                btn_pull_team_gs: 'Hämta från Google',
+                btn_save_team_gs: 'Spara team i Google',
+                routes_db_title: 'Distriktsregister & normtider',
+                routes_db_subtitle: 'Rikttider för respektive distrikt (förberett för säsongsvarianter)',
+                btn_new_route_def: 'Nytt distrikt',
+                col_route_code: 'Distriktsnr',
+                col_route_name: 'Område',
+                col_route_base_time: 'Tid 100%',
+                col_route_season: 'Säsong / Variant',
+                route_def_modal_title: 'Distriktsparametrar',
+                route_minutes_label: 'Tid 100% (minuter)',
+                gs_subtitle: 'Webappens URL från Google Apps Script (förinställd)',
+                btn_save: 'Spara',
+                btn_reset_default: 'Standard-URL',
+                btn_cancel: 'Avbryt',
+                btn_sync_all: 'Synka väntande nu',
+                btn_copy_code: 'Kopiera kod',
+                manual_modal_title: 'Lägg till pass manuellt',
+                edit_modal_title: 'Redigera pass',
+                finish_modal_title: 'Avsluta och spara utdelning',
+                btn_yesterday: 'Igår',
+                btn_today: 'Idag',
+                pause_min_label: 'Paus (m)',
+                calculated_time: 'Faktisk arbetstid att spara:',
+                overnight_hint: '🌙 Nattpass +1 dag – slutar efter midnatt (+24h)',
+                user_modal_title: 'Personaluppgifter',
+                user_name_label: 'För- och efternamn',
+                user_emp_no: 'Anställningsnr',
+                delete_user_title: 'Ta bort anställd?',
+                delete_user_confirm_msg: 'Är du säker på att du vill ta bort kontot permanent:',
+                btn_delete: 'Ta bort',
+                toast_user_deleted: 'Anställd borttagen (kom ihåg att spara teamet i Google).',
+                source_timer: 'Tidtagare',
+                source_manual: 'Manuell',
+                toast_saved: 'Sparat!',
+                toast_sort_saved: 'Sortering sparad! Du kan nu starta utdelningen.',
+                toast_gs_ok: 'Skickat till Google Sheets!',
+                toast_gs_offline: 'Sparat lokalt (ingen anslutning till Google Sheets).'
+            },
+            en: {
+                app_subtitle: 'Time Tracking • Tidningsbud',
+                btn_logout: 'Log out',
+                login_title: 'Employee Login',
+                login_subtitle: 'Enter your 4-digit PIN code to continue',
+                demo_accounts_hint: 'Available accounts (click or enter PIN):',
+                btn_refresh_users: 'Refresh accounts',
+                pin_error: 'Invalid PIN code or inactive account.',
+                nav_timer: 'Timer',
+                nav_reports: 'Reports',
+                nav_team: 'Team',
+                nav_settings: 'Settings & Google Sheets',
+                sort_card_title: 'Parcel & Mail Sorting',
+                paid_separately_badge: 'Paid separately',
+                sort_ready_hint: 'Before starting distribution route',
+                sort_running_hint: 'Sorting parcels / newspapers...',
+                btn_start_sorting: 'START SORTING',
+                btn_stop_sorting: 'STOP & SAVE',
+                dist_card_title: 'Main Distribution Shift',
+                status_ready: 'Ready to work',
+                status_running: 'Distribution in progress...',
+                status_paused: 'Shift paused',
+                routes_selection_title: 'Routes / Districts (max 4)',
+                routes_selection_hint: 'Select full (100%) or partial (%) routes for this shift',
+                btn_add_route: 'Add route',
+                est_only_info_badge: 'FOR INFORMATION ONLY – NOT INCLUDED IN WORKING TIME',
+                est_time_title: 'Estimated time of selected routes (normative):',
+                est_time_modal_info: 'Estimated route time (preview only):',
+                work_type_label: 'Work type',
+                filter_all_types: 'All (Distribution + Sorting)',
+                type_distribution: 'Distribution',
+                type_sorting: 'Sorting (paid separately)',
+                type_sorting_short: 'Sorting',
+                btn_start: 'START SHIFT',
+                btn_pause: 'PAUSE',
+                btn_resume: 'RESUME',
+                btn_stop: 'STOP / FINISH',
+                btn_add_manual_quick: '+ Add shift manually (forgot start/stop)',
+                btn_add_manual_short: '+ Add past shift manually',
+                recent_shifts_title: 'Recent shifts',
+                see_all: 'View reports →',
+                select_month: 'Month',
+                all_employees: 'All employees',
+                btn_add_manual: 'Add manually',
+                btn_pull_gs: 'Fetch from Google',
+                kpi_total_hours: 'Total working time',
+                kpi_dist_hours: 'Distribution / Route',
+                kpi_sort_hours: 'Sorting (separately)',
+                kpi_work_days_avg: 'Work days / Average',
+                chart_daily_title: 'Actual hours by day of month',
+                chart_types_title: 'Breakdown: Distribution vs Sorting',
+                chart_team_title: 'Hours by employee (Distribution + Sorting)',
+                table_history_title: 'Shift log',
+                col_employee: 'Employee',
+                col_date: 'Date',
+                col_hours: 'Start - End',
+                col_start: 'Start',
+                col_end: 'End',
+                col_duration: 'Actual time',
+                col_est_info: 'Estimated (info)',
+                col_routes_pct: 'Routes / Share %',
+                col_source: 'Source',
+                col_actions: 'Actions',
+                col_role: 'Role',
+                no_shifts_month: 'No shifts recorded for selected month.',
+                team_title: 'PREMO Team (Accounts & PIN)',
+                team_subtitle: 'Manage couriers, permissions and PIN codes',
+                btn_add_user: 'Add employee',
+                btn_pull_team_gs: 'Fetch from Google',
+                btn_save_team_gs: 'Save team to Google',
+                routes_db_title: 'Routes & Estimated Times Database',
+                routes_db_subtitle: 'Reference normative durations per district (ready for seasonal presets)',
+                btn_new_route_def: 'Add route to database',
+                col_route_code: 'Route No.',
+                col_route_name: 'District Name',
+                col_route_base_time: '100% Time',
+                col_route_season: 'Season / Variant',
+                route_def_modal_title: 'Route Parameters',
+                route_minutes_label: '100% Time (minutes)',
+                gs_subtitle: 'Deployed Google Apps Script Web App URL (pre-configured)',
+                btn_save: 'Save',
+                btn_reset_default: 'Default URL',
+                btn_cancel: 'Cancel',
+                btn_sync_all: 'Sync pending now',
+                btn_copy_code: 'Copy code',
+                manual_modal_title: 'Add shift manually',
+                edit_modal_title: 'Edit shift',
+                finish_modal_title: 'Finish and save distribution',
+                btn_yesterday: 'Yesterday',
+                btn_today: 'Today',
+                pause_min_label: 'Pause (m)',
+                calculated_time: 'Actual working time to save:',
+                overnight_hint: '🌙 Night shift +1 day – ends past midnight (+24h)',
+                user_modal_title: 'Employee details',
+                user_name_label: 'Full name',
+                user_emp_no: 'Employee ID',
+                delete_user_title: 'Delete employee?',
+                delete_user_confirm_msg: 'Are you sure you want to permanently remove account:',
+                btn_delete: 'Delete',
+                toast_user_deleted: 'Employee removed (remember to save team to Google).',
+                source_timer: 'Timer',
+                source_manual: 'Manual',
+                toast_saved: 'Saved successfully!',
+                toast_sort_saved: 'Sorting shift saved! You can now start distribution.',
+                toast_gs_ok: 'Sent to Google Sheets!',
+                toast_gs_offline: 'Saved locally (Google Sheets not connected).'
+            }
+        };
+
+        let appState = {
+            lang: 'pl',
+            pinBuffer: '',
+            currentUser: null,
+            users: [],
+            routes: [],
+            shifts: [],
+            timers: {},
+            sortTimers: {},
+            modalRoutes: [],
+            activeTab: 'timer',
+            clockInterval: null
+        };
+
+        function t(key) {
+            return (I18N[appState.lang] && I18N[appState.lang][key]) || I18N.pl[key] || key;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        function formatDateISO(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function formatTimeHM(d) {
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function formatMinutesToHM(totalMins) {
+            const mins = Math.max(0, Math.round(totalMins));
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `${h}h ${String(m).padStart(2, '0')}m`;
+        }
+
+        function formatHMS(totalSec) {
+            const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSec % 60).padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+
+        function showToast(msg, type = 'info') {
+            const box = document.getElementById('toastBox');
+            const el = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white',
+                warning: 'bg-amber-600 text-white',
+                error: 'bg-rose-600 text-white',
+                info: 'bg-premo-navy text-white border border-premo-blue'
+            };
+            el.className = `px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold transition-all ${colors[type] || colors.info}`;
+            el.textContent = msg;
+            box.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 250);
+            }, 3200);
+        }
+
+        // =========================================================================
+        // OBLICZENIA SZACOWANEGO CZASU TRAS (WYŁĄCZNIE INFORMACYJNE!)
+        // =========================================================================
+        function calculateEstimatedMinutes(routeAllocations) {
+            if (!Array.isArray(routeAllocations) || routeAllocations.length === 0) return 0;
+            let total = 0;
+            routeAllocations.forEach(item => {
+                const routeObj = appState.routes.find(r => r.id === item.routeId);
+                if (routeObj) {
+                    const pct = Math.max(1, Math.min(100, Number(item.percent) || 100));
+                    total += (routeObj.baseMinutes * pct) / 100;
+                }
+            });
+            return Math.round(total);
+        }
+
+        function buildRoutesSummaryText(routeAllocations) {
+            if (!Array.isArray(routeAllocations) || routeAllocations.length === 0) return '';
+            return routeAllocations.map(item => {
+                const routeObj = appState.routes.find(r => r.id === item.routeId);
+                const label = routeObj ? `${routeObj.code} ${routeObj.name}` : item.routeId;
+                return `${label} (${item.percent}%)`;
+            }).join(' + ');
+        }
+
+        // =========================================================================
+        // INICJALIZACJA DANYCH I MOTYWU
+        // =========================================================================
+        function getActiveWebhookUrl() {
+            const stored = (localStorage.getItem(STORAGE_KEYS.WEBHOOK) || '').trim();
+            return stored || DEFAULT_SCRIPT_URL;
+        }
+
+        function initApp() {
+            const appsPre = document.getElementById('appsScriptCode');
+            if (appsPre) appsPre.textContent = getCleanAppsScriptCode();
+
+            const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+            applyTheme(savedTheme);
+
+            const savedLang = localStorage.getItem(STORAGE_KEYS.LANG) || 'pl';
+            setLanguage(savedLang, false);
+
+            appState.users = loadUsersWithMigration();
+            appState.routes = loadJsonStorage(STORAGE_KEYS.ROUTES, DEFAULT_ROUTES);
+            appState.shifts = loadJsonStorage(STORAGE_KEYS.SHIFTS, []);
+            appState.timers = loadJsonStorage(STORAGE_KEYS.TIMERS, {});
+            appState.sortTimers = loadJsonStorage(STORAGE_KEYS.SORT_TIMERS, {});
+
+            const webhookInp = document.getElementById('googleWebhookInput');
+            if (webhookInp) webhookInp.value = getActiveWebhookUrl();
+
+            const monthInp = document.getElementById('reportMonthInput');
+            if (monthInp && !monthInp.value) {
+                const now = new Date();
+                monthInp.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            renderDemoChips();
+            updatePendingBadge();
+
+            const savedSessionUserId = localStorage.getItem(STORAGE_KEYS.SESSION);
+            if (savedSessionUserId) {
+                const foundUser = appState.users.find(u => u.id === savedSessionUserId && u.active !== false);
+                if (foundUser) {
+                    completeLogin(foundUser, true);
+                } else {
+                    localStorage.removeItem(STORAGE_KEYS.SESSION);
+                }
+            }
+
+            syncUsersFromGoogleSheets(false);
+        }
+
+        function loadJsonStorage(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return JSON.parse(JSON.stringify(fallback));
+                const parsed = JSON.parse(raw);
+                return parsed !== null ? parsed : JSON.parse(JSON.stringify(fallback));
+            } catch (e) {
+                return JSON.parse(JSON.stringify(fallback));
+            }
+        }
+
+        function loadUsersWithMigration() {
+            let users = loadJsonStorage(STORAGE_KEYS.USERS, []);
+            if (!Array.isArray(users) || users.length === 0) {
+                const legacyKeys = ['premo_tid_users_v5', 'premo_tid_users_v4', 'premo_tid_users_v3', 'premo_tid_users_v2', 'premo_tid_users_v1'];
+                for (const k of legacyKeys) {
+                    const oldList = loadJsonStorage(k, []);
+                    if (Array.isArray(oldList) && oldList.length > 0) {
+                        users = oldList;
+                        break;
+                    }
+                }
+            }
+            if (!Array.isArray(users) || users.length === 0) {
+                users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+            }
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+            return users;
+        }
+
+        function saveUsersLocal() {
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(appState.users));
+            renderDemoChips();
+            populateEmployeeDropdowns();
+        }
+
+        function saveRoutesLocal() {
+            localStorage.setItem(STORAGE_KEYS.ROUTES, JSON.stringify(appState.routes));
+        }
+
+        function saveShiftsLocal() {
+            localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(appState.shifts));
+            updatePendingBadge();
+        }
+
+        function saveTimersLocal() {
+            localStorage.setItem(STORAGE_KEYS.TIMERS, JSON.stringify(appState.timers));
+            localStorage.setItem(STORAGE_KEYS.SORT_TIMERS, JSON.stringify(appState.sortTimers));
+        }
+
+        // =========================================================================
+        // JĘZYK I MOTYW (DARK / LIGHT)
+        // =========================================================================
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            const sun = document.getElementById('iconSun');
+            const moon = document.getElementById('iconMoon');
+            if (theme === 'dark') {
+                html.classList.add('dark');
+                if (sun) sun.classList.remove('hidden');
+                if (moon) moon.classList.add('hidden');
+            } else {
+                html.classList.remove('dark');
+                if (sun) sun.classList.add('hidden');
+                if (moon) moon.classList.remove('hidden');
+            }
+            localStorage.setItem(STORAGE_KEYS.THEME, theme);
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            applyTheme(isDark ? 'light' : 'dark');
+        }
+
+        function setLanguage(lang, rerender = true) {
+            appState.lang = I18N[lang] ? lang : 'pl';
+            localStorage.setItem(STORAGE_KEYS.LANG, appState.lang);
+
+            ['pl', 'sv', 'en'].forEach(code => {
+                const btn = document.getElementById(`lang-${code}`);
+                if (!btn) return;
+                if (code === appState.lang) {
+                    btn.className = 'px-2 py-1 rounded-lg transition cursor-pointer bg-premo-orange text-white';
+                } else {
+                    btn.className = 'px-2 py-1 rounded-lg transition cursor-pointer text-slate-300 hover:text-white';
+                }
+            });
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (key) el.textContent = t(key);
+            });
+
+            if (rerender && appState.currentUser) {
+                updateHeaderUserInfo();
+                renderActiveRoutesList();
+                renderRecentShifts();
+                renderReports();
+                renderTeamList();
+                renderRoutesDefTable();
+            }
+        }
+
+        // =========================================================================
+        // LOGOWANIE KODEM PIN
+        // =========================================================================
+        function renderDemoChips() {
+            const container = document.getElementById('demoChipsContainer');
+            if (!container) return;
+            const activeUsers = appState.users.filter(u => u.active !== false);
+            container.innerHTML = activeUsers.map(u => {
+                const isAdmin = u.role === 'ADMIN';
+                return `
+                    <button type="button" onclick="quickLoginWithPin('${escapeHtml(u.pin)}')"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
+                            isAdmin
+                                ? 'bg-premo-orange/15 border-premo-orange/40 text-premo-orange hover:bg-premo-orange hover:text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-premo-blue hover:text-white'
+                        }">
+                        <span>${escapeHtml(u.name)}</span>
+                        <span class="opacity-65 font-mono">(${escapeHtml(u.pin)})</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function updatePinDots() {
+            const dots = document.querySelectorAll('#pinDots > div');
+            dots.forEach((dot, idx) => {
+                if (idx < appState.pinBuffer.length) {
+                    dot.className = 'w-4 h-4 rounded-full bg-premo-orange border-2 border-premo-orange scale-110 transition-all';
+                } else {
+                    dot.className = 'w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 transition-all';
+                }
+            });
+        }
+
+        function pressPinDigit(digit) {
+            if (appState.pinBuffer.length >= 4) return;
+            document.getElementById('loginErrorMsg').textContent = '';
+            appState.pinBuffer += String(digit);
+            updatePinDots();
+            if (appState.pinBuffer.length === 4) {
+                setTimeout(() => attemptPinLogin(appState.pinBuffer), 120);
+            }
+        }
+
+        function clearPin() {
+            appState.pinBuffer = '';
+            document.getElementById('loginErrorMsg').textContent = '';
+            updatePinDots();
+        }
+
+        function backspacePin() {
+            appState.pinBuffer = appState.pinBuffer.slice(0, -1);
+            updatePinDots();
+        }
+
+        function quickLoginWithPin(pin) {
+            appState.pinBuffer = String(pin).slice(0, 4);
+            updatePinDots();
+            setTimeout(() => attemptPinLogin(appState.pinBuffer), 100);
+        }
+
+        function attemptPinLogin(pin) {
+            const matched = appState.users.find(u => String(u.pin) === String(pin) && u.active !== false);
+            if (!matched) {
+                document.getElementById('loginErrorMsg').textContent = t('pin_error');
+                appState.pinBuffer = '';
+                updatePinDots();
+                return;
+            }
+            completeLogin(matched, false);
+        }
+
+        function completeLogin(user, silent) {
+            appState.currentUser = user;
+            appState.pinBuffer = '';
+            updatePinDots();
+            localStorage.setItem(STORAGE_KEYS.SESSION, user.id);
+
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('hidden');
+
+            const btnLogout = document.getElementById('btnLogout');
+            btnLogout.classList.remove('hidden');
+            btnLogout.classList.add('flex');
+
+            const isAdmin = user.role === 'ADMIN';
+            const tabTeam = document.getElementById('tab-team');
+            const adminFilterBox = document.getElementById('adminReportFilterBox');
+            const btnPullGoogle = document.getElementById('btnPullGoogle');
+            const thAdminEmp = document.getElementById('thAdminEmployee');
+            const btnAddRouteDef = document.getElementById('btnAddRouteDef');
+            const thRouteActions = document.getElementById('thRouteActions');
+
+            if (isAdmin) {
+                tabTeam.classList.remove('hidden');
+                tabTeam.classList.add('flex');
+                adminFilterBox.classList.remove('hidden');
+                btnPullGoogle.classList.remove('hidden');
+                btnPullGoogle.classList.add('flex');
+                thAdminEmp.classList.remove('hidden');
+                btnAddRouteDef.classList.remove('hidden');
+                thRouteActions.classList.remove('hidden');
+            } else {
+                tabTeam.classList.add('hidden');
+                tabTeam.classList.remove('flex');
+                adminFilterBox.classList.add('hidden');
+                btnPullGoogle.classList.add('hidden');
+                btnPullGoogle.classList.remove('flex');
+                thAdminEmp.classList.add('hidden');
+                btnAddRouteDef.classList.add('hidden');
+                thRouteActions.classList.add('hidden');
+            }
+
+            updateHeaderUserInfo();
+            ensureUserTimerInitialized(user.id);
+            populateEmployeeDropdowns();
+            renderActiveRoutesList();
+            renderRecentShifts();
+            renderTeamList();
+            renderRoutesDefTable();
+            switchTab('timer');
+
+            if (appState.clockInterval) clearInterval(appState.clockInterval);
+            updateTimersUI();
+            appState.clockInterval = setInterval(updateTimersUI, 1000);
+
+            if (!silent) {
+                syncAllPending(true);
+            }
+        }
+
+        function logout() {
+            if (appState.clockInterval) {
+                clearInterval(appState.clockInterval);
+                appState.clockInterval = null;
+            }
+            appState.currentUser = null;
+            appState.pinBuffer = '';
+            updatePinDots();
+            localStorage.removeItem(STORAGE_KEYS.SESSION);
+
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            const btnLogout = document.getElementById('btnLogout');
+            btnLogout.classList.add('hidden');
+            btnLogout.classList.remove('flex');
+            document.getElementById('headerUserSubtitle').textContent = t('app_subtitle');
+            renderDemoChips();
+        }
+
+        function updateHeaderUserInfo() {
+            const u = appState.currentUser;
+            if (!u) return;
+            const roleBadge = u.role === 'ADMIN' ? 'ADMIN' : 'KURIER';
+            document.getElementById('headerUserSubtitle').textContent = `${u.name} (#${u.employeeNumber}) • ${roleBadge}`;
+            const badge = document.getElementById('loggedUserBadge');
+            if (badge) {
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${escapeHtml(u.name)}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-premo-navy text-white">${roleBadge}</span>`;
+            }
+        }
+
+        function switchTab(tabName) {
+            if (tabName === 'team' && (!appState.currentUser || appState.currentUser.role !== 'ADMIN')) {
+                tabName = 'timer';
+            }
+            appState.activeTab = tabName;
+            ['timer', 'reports', 'team', 'sheets'].forEach(name => {
+                const sec = document.getElementById(`section-${name}`);
+                const btn = document.getElementById(`tab-${name}`);
+                if (sec) sec.classList.toggle('hidden', name !== tabName);
+                if (btn) {
+                    if (name === tabName) {
+                        btn.classList.add('bg-premo-navy', 'text-white', 'shadow-sm');
+                        btn.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+                    } else {
+                        btn.classList.remove('bg-premo-navy', 'text-white', 'shadow-sm');
+                        btn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+                    }
+                }
+            });
+
+            if (tabName === 'reports') renderReports();
+            if (tabName === 'team') renderTeamList();
+            if (tabName === 'sheets') {
+                renderRoutesDefTable();
+                updatePendingBadge();
+            }
+        }
+
+        // =========================================================================
+        // STOPER SORTOWANIA ORAZ STOPER DYSTRYBUCJI + WYBÓR DO 4 TRAS Z PROCENTAMI
+        // =========================================================================
+        function ensureUserTimerInitialized(userId) {
+            if (!appState.timers[userId]) {
+                const defaultRouteId = appState.routes[0] ? appState.routes[0].id : '';
+                appState.timers[userId] = {
+                    status: 'idle',
+                    startTimestamp: null,
+                    accumulatedMs: 0,
+                    pauseStartTimestamp: null,
+                    routes: defaultRouteId ? [{ routeId: defaultRouteId, percent: 100 }] : []
+                };
+                saveTimersLocal();
+            }
+            if (!appState.sortTimers[userId]) {
+                appState.sortTimers[userId] = {
+                    status: 'idle',
+                    startTimestamp: null
+                };
+                saveTimersLocal();
+            }
+        }
+
+        function startSortingTimer() {
+            const u = appState.currentUser;
+            if (!u) return;
+            ensureUserTimerInitialized(u.id);
+            const st = appState.sortTimers[u.id];
+            if (st.status === 'running') return;
+            st.status = 'running';
+            st.startTimestamp = Date.now();
+            saveTimersLocal();
+            updateTimersUI();
+        }
+
+        function stopAndSaveSortingTimer() {
+            const u = appState.currentUser;
+            if (!u) return;
+            const st = appState.sortTimers[u.id];
+            if (!st || st.status !== 'running' || !st.startTimestamp) return;
+
+            const endMs = Date.now();
+            const durationSec = Math.max(60, Math.round((endMs - st.startTimestamp) / 1000));
+            const durationMinutes = Math.max(1, Math.round(durationSec / 60));
+            const startD = new Date(st.startTimestamp);
+            const endD = new Date(endMs);
+
+            const shiftRecord = {
+                id: 'sh_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                userId: u.id,
+                userName: u.name,
+                employeeNumber: u.employeeNumber,
+                date: formatDateISO(startD),
+                startTime: formatTimeHM(startD),
+                endTime: formatTimeHM(endD),
+                pauseMinutes: 0,
+                durationSeconds: durationMinutes * 60,
+                durationMinutes: durationMinutes,
+                durationDecimal: Number((durationMinutes / 60).toFixed(2)),
+                workType: 'sorting',
+                routes: [],
+                routesSummary: '',
+                estimatedMinutes: 0,
+                source: 'timer',
+                synced: false
+            };
+
+            appState.shifts.unshift(shiftRecord);
+            saveShiftsLocal();
+
+            st.status = 'idle';
+            st.startTimestamp = null;
+            saveTimersLocal();
+            updateTimersUI();
+            renderRecentShifts();
+            showToast(t('toast_sort_saved'), 'success');
+            sendShiftToGoogleSheets(shiftRecord);
+        }
+
+        function startTimer() {
+            const u = appState.currentUser;
+            if (!u) return;
+            ensureUserTimerInitialized(u.id);
+            const tm = appState.timers[u.id];
+            if (tm.status === 'running') return;
+            tm.status = 'running';
+            tm.startTimestamp = Date.now();
+            tm.pauseStartTimestamp = null;
+            saveTimersLocal();
+            updateTimersUI();
+        }
+
+        function togglePauseTimer() {
+            const u = appState.currentUser;
+            if (!u) return;
+            const tm = appState.timers[u.id];
+            if (!tm || tm.status === 'idle') return;
+
+            if (tm.status === 'running') {
+                tm.accumulatedMs += Date.now() - tm.startTimestamp;
+                tm.startTimestamp = null;
+                tm.pauseStartTimestamp = Date.now();
+                tm.status = 'paused';
+            } else if (tm.status === 'paused') {
+                tm.startTimestamp = Date.now();
+                tm.pauseStartTimestamp = null;
+                tm.status = 'running';
+            }
+            saveTimersLocal();
+            updateTimersUI();
+        }
+
+        function getActiveTimerElapsedSeconds(userId) {
+            const tm = appState.timers[userId];
+            if (!tm || tm.status === 'idle') return 0;
+            let totalMs = tm.accumulatedMs || 0;
+            if (tm.status === 'running' && tm.startTimestamp) {
+                totalMs += Date.now() - tm.startTimestamp;
+            }
+            return Math.max(0, Math.floor(totalMs / 1000));
+        }
+
+        function updateTimersUI() {
+            const u = appState.currentUser;
+            if (!u) return;
+            ensureUserTimerInitialized(u.id);
+
+            const now = new Date();
+            const dateEl = document.getElementById('currentDateDisplay');
+            if (dateEl) dateEl.textContent = formatDateISO(now);
+
+            // 1. Stoper sortowania
+            const st = appState.sortTimers[u.id];
+            const sortClock = document.getElementById('sortClockDisplay');
+            const sortDot = document.getElementById('sortStatusDot');
+            const sortMeta = document.getElementById('sortStartMeta');
+            const btnSortStart = document.getElementById('btnSortStart');
+            const btnSortStop = document.getElementById('btnSortStop');
+
+            if (st.status === 'running' && st.startTimestamp) {
+                const sec = Math.max(0, Math.floor((Date.now() - st.startTimestamp) / 1000));
+                sortClock.textContent = formatHMS(sec);
+                sortDot.className = 'w-2.5 h-2.5 rounded-full bg-premo-blue animate-ping';
+                sortMeta.textContent = `${t('sort_running_hint')} (${formatTimeHM(new Date(st.startTimestamp))})`;
+                btnSortStart.classList.add('hidden');
+                btnSortStop.classList.remove('hidden');
+            } else {
+                sortClock.textContent = '00:00:00';
+                sortDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+                sortMeta.textContent = t('sort_ready_hint');
+                btnSortStart.classList.remove('hidden');
+                btnSortStop.classList.add('hidden');
+            }
+
+            // 2. Stoper główny dystrybucji
+            const tm = appState.timers[u.id];
+            const mainClock = document.getElementById('timerClockDisplay');
+            const statusDot = document.getElementById('timerStatusDot');
+            const statusText = document.getElementById('timerStatusText');
+            const startMeta = document.getElementById('timerStartMeta');
+            const idleBox = document.getElementById('controlsIdle');
+            const runBox = document.getElementById('controlsRunning');
+            const pauseLabel = document.getElementById('btnPauseLabel');
+
+            const elapsedSec = getActiveTimerElapsedSeconds(u.id);
+            mainClock.textContent = formatHMS(elapsedSec);
+
+            if (tm.status === 'running') {
+                statusDot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
+                statusText.textContent = t('status_running');
+                statusText.className = 'text-xs font-bold uppercase tracking-wider text-emerald-500';
+                startMeta.textContent = tm.startTimestamp ? `Start: ${formatTimeHM(new Date(tm.startTimestamp))}` : '';
+                idleBox.classList.add('hidden');
+                runBox.classList.remove('hidden');
+                pauseLabel.textContent = t('btn_pause');
+            } else if (tm.status === 'paused') {
+                statusDot.className = 'w-3 h-3 rounded-full bg-amber-500';
+                statusText.textContent = t('status_paused');
+                statusText.className = 'text-xs font-bold uppercase tracking-wider text-amber-500';
+                idleBox.classList.add('hidden');
+                runBox.classList.remove('hidden');
+                pauseLabel.textContent = t('btn_resume');
+            } else {
+                statusDot.className = 'w-3 h-3 rounded-full bg-slate-400';
+                statusText.textContent = t('status_ready');
+                statusText.className = 'text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400';
+                startMeta.textContent = '';
+                idleBox.classList.remove('hidden');
+                runBox.classList.add('hidden');
+            }
+        }
+
+        function renderActiveRoutesList() {
+            const u = appState.currentUser;
+            if (!u) return;
+            ensureUserTimerInitialized(u.id);
+            const tm = appState.timers[u.id];
+            if (!Array.isArray(tm.routes)) tm.routes = [];
+
+            const container = document.getElementById('activeRoutesList');
+            const addBtn = document.getElementById('btnAddActiveRoute');
+            if (!container) return;
+
+            if (addBtn) {
+                addBtn.disabled = tm.routes.length >= 4;
+                addBtn.classList.toggle('opacity-40', tm.routes.length >= 4);
+            }
+
+            if (tm.routes.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic py-1">Brak wybranej trasy (kliknij „+ Dodaj trasę”).</p>`;
+            } else {
+                container.innerHTML = tm.routes.map((item, idx) => {
+                    const optionsHtml = appState.routes.map(r =>
+                        `<option value="${escapeHtml(r.id)}" ${r.id === item.routeId ? 'selected' : ''}>${escapeHtml(r.code)} – ${escapeHtml(r.name)} (${formatMinutesToHM(r.baseMinutes)})</option>`
+                    ).join('');
+                    return `
+                        <div class="flex items-center gap-2">
+                            <select onchange="updateActiveRouteRow(${idx}, 'routeId', this.value)" class="flex-1 min-w-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs sm:text-sm font-bold text-slate-800 dark:text-white">
+                                ${optionsHtml}
+                            </select>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <input type="number" min="1" max="100" value="${Number(item.percent) || 100}" onchange="updateActiveRouteRow(${idx}, 'percent', this.value)" class="w-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-2 text-xs sm:text-sm font-mono font-bold text-center text-slate-800 dark:text-white">
+                                <span class="text-xs font-bold text-slate-400">%</span>
+                            </div>
+                            <button type="button" onclick="removeActiveRouteRow(${idx})" class="w-8 h-8 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white text-xs font-bold transition cursor-pointer shrink-0">✕</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const estMins = calculateEstimatedMinutes(tm.routes);
+            const hmEl = document.getElementById('activeEstimatedHM');
+            const decEl = document.getElementById('activeEstimatedDec');
+            if (hmEl) hmEl.textContent = formatMinutesToHM(estMins);
+            if (decEl) decEl.textContent = `(${(estMins / 60).toFixed(2)} h)`;
+        }
+
+        function addActiveRouteRow() {
+            const u = appState.currentUser;
+            if (!u) return;
+            const tm = appState.timers[u.id];
+            if (tm.routes.length >= 4) return;
+            const defaultRoute = appState.routes[tm.routes.length] || appState.routes[0];
+            if (!defaultRoute) return;
+            tm.routes.push({ routeId: defaultRoute.id, percent: 100 });
+            saveTimersLocal();
+            renderActiveRoutesList();
+        }
+
+        function updateActiveRouteRow(idx, field, val) {
+            const u = appState.currentUser;
+            if (!u) return;
+            const tm = appState.timers[u.id];
+            if (!tm.routes[idx]) return;
+            if (field === 'percent') {
+                tm.routes[idx].percent = Math.max(1, Math.min(100, parseInt(val, 10) || 100));
+            } else {
+                tm.routes[idx].routeId = val;
+            }
+            saveTimersLocal();
+            renderActiveRoutesList();
+        }
+
+        function removeActiveRouteRow(idx) {
+            const u = appState.currentUser;
+            if (!u) return;
+            const tm = appState.timers[u.id];
+            tm.routes.splice(idx, 1);
+            saveTimersLocal();
+            renderActiveRoutesList();
+        }
+
+        // =========================================================================
+        // MODAL DODAWANIA / EDYCJI / ZAKOŃCZENIA ZMIANY
+        // =========================================================================
+        function populateEmployeeDropdowns() {
+            const reportFilter = document.getElementById('reportEmployeeFilter');
+            const modalEmpSelect = document.getElementById('modalEmployeeSelect');
+
+            if (reportFilter) {
+                const prev = reportFilter.value || 'ALL';
+                reportFilter.innerHTML = `<option value="ALL">${escapeHtml(t('all_employees'))}</option>` +
+                    appState.users.map(u => `<option value="${escapeHtml(u.id)}">${escapeHtml(u.name)} (#${escapeHtml(u.employeeNumber)})</option>`).join('');
+                reportFilter.value = prev;
+            }
+
+            if (modalEmpSelect) {
+                modalEmpSelect.innerHTML = appState.users.map(u =>
+                    `<option value="${escapeHtml(u.id)}">${escapeHtml(u.name)} (#${escapeHtml(u.employeeNumber)})</option>`
+                ).join('');
+            }
+        }
+
+        function selectModalWorkType(type) {
+            document.getElementById('modalWorkTypeValue').value = type;
+            const pillDist = document.getElementById('pillTypeDist');
+            const pillSort = document.getElementById('pillTypeSort');
+            const routesSec = document.getElementById('modalRoutesSection');
+
+            if (type === 'sorting') {
+                pillSort.className = 'py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 border-premo-blue bg-premo-blue text-white transition cursor-pointer';
+                pillDist.className = 'py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer';
+                routesSec.classList.add('hidden');
+            } else {
+                pillDist.className = 'py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 border-premo-orange bg-premo-orange text-white transition cursor-pointer';
+                pillSort.className = 'py-2.5 px-3 rounded-xl font-extrabold text-xs border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer';
+                routesSec.classList.remove('hidden');
+            }
+        }
+
+        function renderModalRoutesList() {
+            const container = document.getElementById('modalRoutesList');
+            const addBtn = document.getElementById('btnAddModalRoute');
+            if (!container) return;
+
+            if (addBtn) {
+                addBtn.disabled = appState.modalRoutes.length >= 4;
+                addBtn.classList.toggle('opacity-40', appState.modalRoutes.length >= 4);
+            }
+
+            container.innerHTML = appState.modalRoutes.map((item, idx) => {
+                const opts = appState.routes.map(r =>
+                    `<option value="${escapeHtml(r.id)}" ${r.id === item.routeId ? 'selected' : ''}>${escapeHtml(r.code)} – ${escapeHtml(r.name)}</option>`
+                ).join('');
+                return `
+                    <div class="flex items-center gap-2">
+                        <select onchange="updateModalRouteRow(${idx}, 'routeId', this.value)" class="flex-1 min-w-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-xs font-bold">
+                            ${opts}
+                        </select>
+                        <input type="number" min="1" max="100" value="${Number(item.percent) || 100}" onchange="updateModalRouteRow(${idx}, 'percent', this.value)" class="w-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-2 text-xs font-mono font-bold text-center">
+                        <span class="text-xs font-bold text-slate-400">%</span>
+                        <button type="button" onclick="removeModalRouteRow(${idx})" class="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-500 text-xs font-bold cursor-pointer">✕</button>
+                    </div>
+                `;
+            }).join('');
+
+            const estMins = calculateEstimatedMinutes(appState.modalRoutes);
+            const prevEl = document.getElementById('modalEstimatedPreview');
+            if (prevEl) prevEl.textContent = `${formatMinutesToHM(estMins)} (${(estMins / 60).toFixed(2)} h)`;
+        }
+
+        function addModalRouteRow() {
+            if (appState.modalRoutes.length >= 4) return;
+            const def = appState.routes[appState.modalRoutes.length] || appState.routes[0];
+            if (!def) return;
+            appState.modalRoutes.push({ routeId: def.id, percent: 100 });
+            renderModalRoutesList();
+        }
+
+        function updateModalRouteRow(idx, field, val) {
+            if (!appState.modalRoutes[idx]) return;
+            if (field === 'percent') {
+                appState.modalRoutes[idx].percent = Math.max(1, Math.min(100, parseInt(val, 10) || 100));
+            } else {
+                appState.modalRoutes[idx].routeId = val;
+            }
+            renderModalRoutesList();
+        }
+
+        function removeModalRouteRow(idx) {
+            appState.modalRoutes.splice(idx, 1);
+            renderModalRoutesList();
+        }
+
+        function setModalQuickDate(offsetDays) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            document.getElementById('modalDate').value = formatDateISO(d);
+            updateModalDurationPreview();
+        }
+
+        function openShiftModal(shiftToEdit = null) {
+            const u = appState.currentUser;
+            if (!u) return;
+
+            document.getElementById('modalShiftMode').value = shiftToEdit ? 'edit' : 'manual';
+            document.getElementById('modalShiftId').value = shiftToEdit ? shiftToEdit.id : '';
+            document.getElementById('shiftModalTitle').textContent = shiftToEdit ? t('edit_modal_title') : t('manual_modal_title');
+
+            const isAdmin = u.role === 'ADMIN';
+            const sel = document.getElementById('modalEmployeeSelect');
+            const locked = document.getElementById('modalEmployeeLocked');
+            populateEmployeeDropdowns();
+
+            if (isAdmin) {
+                sel.classList.remove('hidden');
+                locked.classList.add('hidden');
+                sel.value = shiftToEdit ? shiftToEdit.userId : u.id;
+            } else {
+                sel.classList.add('hidden');
+                locked.classList.remove('hidden');
+                locked.textContent = `${u.name} (#${u.employeeNumber})`;
+            }
+
+            if (shiftToEdit) {
+                selectModalWorkType(shiftToEdit.workType || 'distribution');
+                document.getElementById('modalDate').value = shiftToEdit.date;
+                document.getElementById('modalStart').value = shiftToEdit.startTime;
+                document.getElementById('modalEnd').value = shiftToEdit.endTime;
+                document.getElementById('modalPause').value = shiftToEdit.pauseMinutes || 0;
+                appState.modalRoutes = Array.isArray(shiftToEdit.routes) ? JSON.parse(JSON.stringify(shiftToEdit.routes)) : [];
+            } else {
+                selectModalWorkType('distribution');
+                document.getElementById('modalDate').value = formatDateISO(new Date());
+                document.getElementById('modalStart').value = '01:30';
+                document.getElementById('modalEnd').value = '06:00';
+                document.getElementById('modalPause').value = 0;
+                const tm = appState.timers[u.id];
+                appState.modalRoutes = (tm && Array.isArray(tm.routes)) ? JSON.parse(JSON.stringify(tm.routes)) : [];
+            }
+
+            renderModalRoutesList();
+            updateModalDurationPreview();
+            const modal = document.getElementById('shiftModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openFinishTimerModal() {
+            const u = appState.currentUser;
+            if (!u) return;
+            const tm = appState.timers[u.id];
+            const elapsedSec = getActiveTimerElapsedSeconds(u.id);
+            const endD = new Date();
+            const startD = new Date(endD.getTime() - elapsedSec * 1000);
+
+            document.getElementById('modalShiftMode').value = 'finish_timer';
+            document.getElementById('modalShiftId').value = '';
+            document.getElementById('shiftModalTitle').textContent = t('finish_modal_title');
+
+            const sel = document.getElementById('modalEmployeeSelect');
+            const locked = document.getElementById('modalEmployeeLocked');
+            sel.classList.add('hidden');
+            locked.classList.remove('hidden');
+            locked.textContent = `${u.name} (#${u.employeeNumber})`;
+
+            selectModalWorkType('distribution');
+            document.getElementById('modalDate').value = formatDateISO(startD);
+            document.getElementById('modalStart').value = formatTimeHM(startD);
+            document.getElementById('modalEnd').value = formatTimeHM(endD);
+            document.getElementById('modalPause').value = 0;
+            appState.modalRoutes = (tm && Array.isArray(tm.routes)) ? JSON.parse(JSON.stringify(tm.routes)) : [];
+
+            renderModalRoutesList();
+            updateModalDurationPreview();
+            const modal = document.getElementById('shiftModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeShiftModal() {
+            const modal = document.getElementById('shiftModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function computeNetMinutesFromInputs() {
+            const startVal = document.getElementById('modalStart').value || '00:00';
+            const endVal = document.getElementById('modalEnd').value || '00:00';
+            const pauseMin = Math.max(0, parseInt(document.getElementById('modalPause').value, 10) || 0);
+
+            const [sh, sm] = startVal.split(':').map(Number);
+            const [eh, em] = endVal.split(':').map(Number);
+            const startTotal = sh * 60 + sm;
+            let endTotal = eh * 60 + em;
+            let isOvernight = false;
+
+            if (endTotal <= startTotal) {
+                endTotal += 24 * 60;
+                isOvernight = true;
+            }
+            const netMinutes = Math.max(1, endTotal - startTotal - pauseMin);
+            return { netMinutes, isOvernight, pauseMin, startVal, endVal };
+        }
+
+        function updateModalDurationPreview() {
+            const { netMinutes, isOvernight } = computeNetMinutesFromInputs();
+            const prev = document.getElementById('modalDurationPreview');
+            const badge = document.getElementById('modalOvernightBadge');
+            if (prev) prev.textContent = `${formatMinutesToHM(netMinutes)} (${(netMinutes / 60).toFixed(2)} h)`;
+            if (badge) badge.classList.toggle('hidden', !isOvernight);
+        }
+
+        function saveShiftFromModal() {
+            const u = appState.currentUser;
+            if (!u) return;
+
+            const mode = document.getElementById('modalShiftMode').value;
+            const editId = document.getElementById('modalShiftId').value;
+            const workType = document.getElementById('modalWorkTypeValue').value || 'distribution';
+            const dateVal = document.getElementById('modalDate').value || formatDateISO(new Date());
+            const { netMinutes, pauseMin, startVal, endVal } = computeNetMinutesFromInputs();
+
+            let targetUser = u;
+            if (u.role === 'ADMIN' && mode !== 'finish_timer') {
+                const chosenId = document.getElementById('modalEmployeeSelect').value;
+                targetUser = appState.users.find(x => x.id === chosenId) || u;
+            }
+
+            const chosenRoutes = workType === 'distribution' ? JSON.parse(JSON.stringify(appState.modalRoutes)) : [];
+            const estMinutes = workType === 'distribution' ? calculateEstimatedMinutes(chosenRoutes) : 0;
+
+            if (mode === 'edit' && editId) {
+                const idx = appState.shifts.findIndex(s => s.id === editId);
+                if (idx !== -1) {
+                    appState.shifts[idx] = {
+                        ...appState.shifts[idx],
+                        userId: targetUser.id,
+                        userName: targetUser.name,
+                        employeeNumber: targetUser.employeeNumber,
+                        date: dateVal,
+                        startTime: startVal,
+                        endTime: endVal,
+                        pauseMinutes: pauseMin,
+                        durationSeconds: netMinutes * 60,
+                        durationMinutes: netMinutes,
+                        durationDecimal: Number((netMinutes / 60).toFixed(2)),
+                        workType,
+                        routes: chosenRoutes,
+                        routesSummary: buildRoutesSummaryText(chosenRoutes),
+                        estimatedMinutes: estMinutes,
+                        synced: false
+                    };
+                    saveShiftsLocal();
+                    closeShiftModal();
+                    renderRecentShifts();
+                    renderReports();
+                    showToast(t('toast_saved'), 'success');
+                    sendShiftToGoogleSheets(appState.shifts[idx]);
+                    return;
+                }
+            }
+
+            const record = {
+                id: 'sh_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                userId: targetUser.id,
+                userName: targetUser.name,
+                employeeNumber: targetUser.employeeNumber,
+                date: dateVal,
+                startTime: startVal,
+                endTime: endVal,
+                pauseMinutes: pauseMin,
+                durationSeconds: netMinutes * 60,
+                durationMinutes: netMinutes,
+                durationDecimal: Number((netMinutes / 60).toFixed(2)),
+                workType,
+                routes: chosenRoutes,
+                routesSummary: buildRoutesSummaryText(chosenRoutes),
+                estimatedMinutes: estMinutes,
+                source: mode === 'finish_timer' ? 'timer' : 'manual',
+                synced: false
+            };
+
+            appState.shifts.unshift(record);
+            saveShiftsLocal();
+
+            if (mode === 'finish_timer') {
+                const tm = appState.timers[u.id];
+                if (tm) {
+                    tm.status = 'idle';
+                    tm.startTimestamp = null;
+                    tm.accumulatedMs = 0;
+                    tm.pauseStartTimestamp = null;
+                    saveTimersLocal();
+                }
+                updateTimersUI();
+            }
+
+            closeShiftModal();
+            renderRecentShifts();
+            if (appState.activeTab === 'reports') renderReports();
+            showToast(t('toast_saved'), 'success');
+            sendShiftToGoogleSheets(record);
+        }
+
+        function deleteShift(shiftId) {
+            appState.shifts = appState.shifts.filter(s => s.id !== shiftId);
+            saveShiftsLocal();
+            renderRecentShifts();
+            renderReports();
+        }
+
+        // =========================================================================
+        // OSTATNIE ZMIANY I RAPORTY MIESIĘCZNE + WYKRESY SVG
+        // =========================================================================
+        function renderRecentShifts() {
+            const u = appState.currentUser;
+            const listEl = document.getElementById('recentShiftsList');
+            if (!u || !listEl) return;
+
+            const userShifts = appState.shifts
+                .filter(s => s.userId === u.id)
+                .sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime))
+                .slice(0, 5);
+
+            if (userShifts.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">${escapeHtml(t('no_shifts_month'))}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = userShifts.map(s => {
+                const isSort = s.workType === 'sorting';
+                const badgeClass = isSort
+                    ? 'bg-premo-blue/15 text-premo-blue dark:text-sky-300'
+                    : 'bg-premo-orange/15 text-premo-orange';
+                const typeText = isSort ? t('type_sorting_short') : t('type_distribution');
+                const routesInfo = s.routesSummary ? `<div class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(s.routesSummary)}</div>` : '';
+                return `
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-extrabold text-slate-800 dark:text-white">${escapeHtml(s.date)}</span>
+                                <span class="text-xs font-mono text-slate-400">${escapeHtml(s.startTime)}–${escapeHtml(s.endTime)}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${badgeClass}">${escapeHtml(typeText)}</span>
+                            </div>
+                            ${routesInfo}
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="font-mono font-extrabold text-sm text-premo-navy dark:text-white">${formatMinutesToHM(s.durationMinutes)}</div>
+                            <div class="text-[10px] font-bold ${s.synced ? 'text-emerald-500' : 'text-amber-500'}">${s.synced ? '✓ Google' : '● Lokalnie'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderReports() {
+            const u = appState.currentUser;
+            if (!u) return;
+
+            const monthVal = document.getElementById('reportMonthInput').value || formatDateISO(new Date()).slice(0, 7);
+            const typeFilter = document.getElementById('reportWorkTypeFilter').value || 'ALL';
+            const empFilter = u.role === 'ADMIN' ? (document.getElementById('reportEmployeeFilter').value || 'ALL') : u.id;
+
+            const filtered = appState.shifts.filter(s => {
+                if (!s.date || !s.date.startsWith(monthVal)) return false;
+                if (empFilter !== 'ALL' && s.userId !== empFilter) return false;
+                if (typeFilter !== 'ALL' && (s.workType || 'distribution') !== typeFilter) return false;
+                return true;
+            }).sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
+
+            let totalMins = 0;
+            let distMins = 0;
+            let distCount = 0;
+            let sortMins = 0;
+            let sortCount = 0;
+            const uniqueDays = new Set();
+
+            filtered.forEach(s => {
+                const m = Number(s.durationMinutes) || 0;
+                totalMins += m;
+                if (s.date) uniqueDays.add(s.date);
+                if (s.workType === 'sorting') {
+                    sortMins += m;
+                    sortCount++;
+                } else {
+                    distMins += m;
+                    distCount++;
+                }
+            });
+
+            document.getElementById('kpiTotalHM').textContent = formatMinutesToHM(totalMins);
+            document.getElementById('kpiTotalDec').textContent = `${(totalMins / 60).toFixed(2)} h`;
+
+            document.getElementById('kpiDistHM').textContent = formatMinutesToHM(distMins);
+            document.getElementById('kpiDistSub').textContent = `${(distMins / 60).toFixed(2)} h • ${distCount}`;
+
+            document.getElementById('kpiSortHM').textContent = formatMinutesToHM(sortMins);
+            document.getElementById('kpiSortSub').textContent = `${(sortMins / 60).toFixed(2)} h • ${sortCount}`;
+
+            const daysCount = uniqueDays.size;
+            const avgMins = daysCount > 0 ? Math.round(totalMins / daysCount) : 0;
+            document.getElementById('kpiWorkDays').textContent = String(daysCount);
+            document.getElementById('kpiAvgShift').textContent = `Ø ${formatMinutesToHM(avgMins)}`;
+
+            renderDailySvgChart(monthVal, filtered);
+            renderBreakdownBars(filtered, distMins, sortMins, u.role === 'ADMIN' && empFilter === 'ALL');
+
+            const tbody = document.getElementById('reportTableBody');
+            const emptyState = document.getElementById('reportEmptyState');
+            const showEmpCol = u.role === 'ADMIN';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filtered.map(s => {
+                const isSort = s.workType === 'sorting';
+                const typeBadge = isSort
+                    ? `<span class="px-2 py-0.5 rounded-full bg-premo-blue/15 text-premo-blue dark:text-sky-300 text-[11px] font-bold">${escapeHtml(t('type_sorting_short'))}</span>`
+                    : `<span class="px-2 py-0.5 rounded-full bg-premo-orange/15 text-premo-orange text-[11px] font-bold">${escapeHtml(t('type_distribution'))}</span>`;
+                const srcLabel = s.source === 'manual' ? t('source_manual') : t('source_timer');
+                const estCell = (!isSort && s.estimatedMinutes > 0) ? formatMinutesToHM(s.estimatedMinutes) : '—';
+                const editBtn = `<button onclick="editShiftById('${escapeHtml(s.id)}')" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-premo-blue hover:text-white text-xs font-bold cursor-pointer">✎</button>`;
+                const delBtn = `<button onclick="deleteShift('${escapeHtml(s.id)}')" class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white text-xs font-bold cursor-pointer">✕</button>`;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                        ${showEmpCol ? `<td class="py-3 px-4 font-bold text-xs">${escapeHtml(s.userName)}</td>` : ''}
+                        <td class="py-3 px-4 font-mono text-xs font-bold whitespace-nowrap">${escapeHtml(s.date)}</td>
+                        <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">${escapeHtml(s.startTime)} – ${escapeHtml(s.endTime)}</td>
+                        <td class="py-3 px-4 font-mono text-xs font-extrabold text-premo-navy dark:text-white whitespace-nowrap">${formatMinutesToHM(s.durationMinutes)} <span class="text-slate-400 font-normal">(${(s.durationMinutes / 60).toFixed(2)}h)</span></td>
+                        <td class="py-3 px-4 whitespace-nowrap">${typeBadge}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate">${escapeHtml(s.routesSummary || '—')}</td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-400 whitespace-nowrap">${estCell}</td>
+                        <td class="py-3 px-4 text-xs text-slate-400 whitespace-nowrap">${escapeHtml(srcLabel)}</td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap no-print space-x-1">${editBtn}${delBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function editShiftById(id) {
+            const found = appState.shifts.find(s => s.id === id);
+            if (found) openShiftModal(found);
+        }
+
+        function renderDailySvgChart(monthVal, shifts) {
+            const container = document.getElementById('dailySvgChartContainer');
+            if (!container) return;
+
+            const [y, m] = monthVal.split('-').map(Number);
+            const daysInMonth = new Date(y, m, 0).getDate();
+            const dayDist = new Array(daysInMonth + 1).fill(0);
+            const daySort = new Array(daysInMonth + 1).fill(0);
+
+            shifts.forEach(s => {
+                const dayNum = parseInt((s.date || '').split('-')[2], 10);
+                if (dayNum >= 1 && dayNum <= daysInMonth) {
+                    const hrs = (Number(s.durationMinutes) || 0) / 60;
+                    if (s.workType === 'sorting') daySort[dayNum] += hrs;
+                    else dayDist[dayNum] += hrs;
+                }
+            });
+
+            let maxHrs = 8;
+            for (let d = 1; d <= daysInMonth; d++) {
+                maxHrs = Math.max(maxHrs, dayDist[d] + daySort[d]);
+            }
+
+            const width = Math.max(520, daysInMonth * 18);
+            const height = 160;
+            const padBottom = 22;
+            const chartH = height - padBottom - 10;
+
+            let bars = '';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const x = (d - 1) * 18 + 6;
+                const dH = (dayDist[d] / maxHrs) * chartH;
+                const sH = (daySort[d] / maxHrs) * chartH;
+                const yDist = height - padBottom - dH;
+                const ySort = yDist - sH;
+
+                bars += `<rect x="${x}" y="10" width="12" height="${chartH}" rx="3" fill="currentColor" class="text-slate-100 dark:text-slate-800/60" />`;
+                if (dH > 0) {
+                    bars += `<rect x="${x}" y="${yDist.toFixed(1)}" width="12" height="${dH.toFixed(1)}" rx="2" fill="#FF5A00"><title>Dzień ${d}: Dystrybucja ${dayDist[d].toFixed(2)}h</title></rect>`;
+                }
+                if (sH > 0) {
+                    bars += `<rect x="${x}" y="${ySort.toFixed(1)}" width="12" height="${sH.toFixed(1)}" rx="2" fill="#0077C8"><title>Dzień ${d}: Sortowanie ${daySort[d].toFixed(2)}h</title></rect>`;
+                }
+                if (d === 1 || d % 5 === 0 || d === daysInMonth) {
+                    bars += `<text x="${x + 6}" y="${height - 6}" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="monospace">${d}</text>`;
+                }
+            }
+
+            container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" class="w-full min-w-[480px] h-40">${bars}</svg>`;
+        }
+
+        function renderBreakdownBars(shifts, distMins, sortMins, showPerEmployee) {
+            const box = document.getElementById('breakdownBarChart');
+            const titleEl = document.getElementById('breakdownChartTitle');
+            if (!box) return;
+
+            if (showPerEmployee) {
+                titleEl.textContent = t('chart_team_title');
+                const byUser = {};
+                shifts.forEach(s => {
+                    if (!byUser[s.userName]) byUser[s.userName] = 0;
+                    byUser[s.userName] += Number(s.durationMinutes) || 0;
+                });
+                const entries = Object.entries(byUser).sort((a, b) => b[1] - a[1]);
+                const maxVal = entries.length > 0 ? Math.max(...entries.map(e => e[1]), 1) : 1;
+
+                if (entries.length === 0) {
+                    box.innerHTML = `<p class="text-xs text-slate-400">${escapeHtml(t('no_shifts_month'))}</p>`;
+                    return;
+                }
+                box.innerHTML = entries.map(([name, mins]) => {
+                    const pct = Math.round((mins / maxVal) * 100);
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-bold mb-1">
+                                <span>${escapeHtml(name)}</span>
+                                <span class="font-mono">${formatMinutesToHM(mins)} (${(mins / 60).toFixed(2)}h)</span>
+                            </div>
+                            <div class="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div class="h-full rounded-full bg-premo-orange" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                titleEl.textContent = t('chart_types_title');
+                const total = Math.max(distMins + sortMins, 1);
+                const distPct = Math.round((distMins / total) * 100);
+                const sortPct = Math.round((sortMins / total) * 100);
+
+                box.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span class="text-premo-orange">${escapeHtml(t('type_distribution'))}</span>
+                            <span class="font-mono">${formatMinutesToHM(distMins)} (${distPct}%)</span>
+                        </div>
+                        <div class="w-full h-3.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full bg-premo-orange" style="width:${distPct}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span class="text-premo-blue dark:text-sky-400">${escapeHtml(t('type_sorting'))}</span>
+                            <span class="font-mono">${formatMinutesToHM(sortMins)} (${sortPct}%)</span>
+                        </div>
+                        <div class="w-full h-3.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full bg-premo-blue" style="width:${sortPct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function exportReportCSV() {
+            const monthVal = document.getElementById('reportMonthInput').value || '';
+            const rows = [
+                ['ID', 'Data', 'Pracownik', 'Nr_pracownika', 'Typ_pracy', 'Trasy', 'Faktyczny_czas_min', 'Faktyczny_czas_h', 'Szacowany_czas_tras_min_INFO', 'Start', 'Koniec', 'Zrodlo']
+            ];
+            appState.shifts.filter(s => !monthVal || (s.date && s.date.startsWith(monthVal))).forEach(s => {
+                rows.push([
+                    s.id, s.date, s.userName, s.employeeNumber,
+                    s.workType === 'sorting' ? 'Sortowanie' : 'Dystrybucja',
+                    `"${(s.routesSummary || '').replace(/"/g, '""')}"`,
+                    s.durationMinutes, s.durationDecimal, s.estimatedMinutes || 0,
+                    s.startTime, s.endTime, s.source
+                ]);
+            });
+            const csvContent = '\uFEFF' + rows.map(r => r.join(';')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `PREMO_Tidrapport_${monthVal || 'all'}.csv`;
+            link.click();
+        }
+
+        // =========================================================================
+        // ZARZĄDZANIE ZESPOŁEM (ADMIN) + USUWANIE UŻYTKOWNIKÓW
+        // =========================================================================
+        function renderTeamList() {
+            const box = document.getElementById('teamUsersList');
+            if (!box || !appState.currentUser) return;
+
+            box.innerHTML = appState.users.map(u => {
+                const isSelf = u.id === appState.currentUser.id;
+                const isAdmin = u.role === 'ADMIN';
+                return `
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-extrabold text-sm text-premo-navy dark:text-white">${escapeHtml(u.name)}</span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold ${isAdmin ? 'bg-premo-orange text-white' : 'bg-premo-blue/15 text-premo-blue dark:text-sky-300'}">${escapeHtml(u.role)}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-mono mt-1">ID: #${escapeHtml(u.employeeNumber)} • PIN: ${escapeHtml(u.pin)}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="openUserModal('${escapeHtml(u.id)}')" class="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-premo-blue cursor-pointer">✎</button>
+                            ${!isSelf ? `<button onclick="openDeleteUserModal('${escapeHtml(u.id)}')" class="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-500 hover:text-white text-xs font-bold transition cursor-pointer" title="Usuń">✕</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openUserModal(userId = null) {
+            const modal = document.getElementById('userModal');
+            if (userId) {
+                const u = appState.users.find(x => x.id === userId);
+                if (!u) return;
+                document.getElementById('editUserId').value = u.id;
+                document.getElementById('userNameInput').value = u.name;
+                document.getElementById('userEmpNoInput').value = u.employeeNumber;
+                document.getElementById('userPinInput').value = u.pin;
+                document.getElementById('userRoleInput').value = u.role;
+            } else {
+                document.getElementById('editUserId').value = '';
+                document.getElementById('userNameInput').value = '';
+                document.getElementById('userEmpNoInput').value = String(1010 + appState.users.length);
+                document.getElementById('userPinInput').value = '';
+                document.getElementById('userRoleInput').value = 'USER';
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeUserModal() {
+            const modal = document.getElementById('userModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveUserFromModal() {
+            const editId = document.getElementById('editUserId').value;
+            const name = (document.getElementById('userNameInput').value || '').trim();
+            const empNo = (document.getElementById('userEmpNoInput').value || '').trim() || '1000';
+            const pin = (document.getElementById('userPinInput').value || '').replace(/\D/g, '').slice(0, 4);
+            const role = document.getElementById('userRoleInput').value || 'USER';
+
+            if (!name || pin.length !== 4) {
+                showToast('Podaj imię oraz 4-cyfrowy kod PIN!', 'warning');
+                return;
+            }
+
+            const duplicatePin = appState.users.find(u => u.pin === pin && u.id !== editId);
+            if (duplicatePin) {
+                showToast(`PIN ${pin} jest już przypisany do: ${duplicatePin.name}`, 'error');
+                return;
+            }
+
+            if (editId) {
+                const idx = appState.users.findIndex(u => u.id === editId);
+                if (idx !== -1) {
+                    appState.users[idx] = { ...appState.users[idx], name, employeeNumber: empNo, pin, role, active: true };
+                }
+            } else {
+                appState.users.push({
+                    id: 'u_' + Date.now(),
+                    name,
+                    employeeNumber: empNo,
+                    pin,
+                    role,
+                    active: true
+                });
+            }
+
+            saveUsersLocal();
+            closeUserModal();
+            renderTeamList();
+            showToast(t('toast_saved'), 'success');
+            pushUsersToGoogleSheets(true);
+        }
+
+        function openDeleteUserModal(userId) {
+            const target = appState.users.find(u => u.id === userId);
+            if (!target || (appState.currentUser && target.id === appState.currentUser.id)) return;
+            document.getElementById('deleteUserTargetId').value = target.id;
+            document.getElementById('deleteUserConfirmText').textContent = `${t('delete_user_confirm_msg')} ${target.name} (#${target.employeeNumber})?`;
+            const modal = document.getElementById('deleteUserConfirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteUserModal() {
+            const modal = document.getElementById('deleteUserConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmDeleteUser() {
+            const targetId = document.getElementById('deleteUserTargetId').value;
+            if (!targetId || (appState.currentUser && targetId === appState.currentUser.id)) return;
+            appState.users = appState.users.filter(u => u.id !== targetId);
+            saveUsersLocal();
+            closeDeleteUserModal();
+            renderTeamList();
+            showToast(t('toast_user_deleted'), 'info');
+            pushUsersToGoogleSheets(true);
+        }
+
+        // =========================================================================
+        // BAZA TRAS (DISTRIKT) W USTAWIENIACH
+        // =========================================================================
+        function renderRoutesDefTable() {
+            const tbody = document.getElementById('routesDefTableBody');
+            if (!tbody) return;
+            const isAdmin = appState.currentUser && appState.currentUser.role === 'ADMIN';
+
+            tbody.innerHTML = appState.routes.map(r => `
+                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                    <td class="py-2.5 px-3 font-mono font-bold text-xs text-premo-blue dark:text-sky-400">${escapeHtml(r.code)}</td>
+                    <td class="py-2.5 px-3 font-bold text-xs">${escapeHtml(r.name)}</td>
+                    <td class="py-2.5 px-3 font-mono text-xs">${formatMinutesToHM(r.baseMinutes)} <span class="text-slate-400">(${r.baseMinutes} min)</span></td>
+                    <td class="py-2.5 px-3 text-xs text-slate-500">${escapeHtml(r.season || 'Standard')}</td>
+                    ${isAdmin ? `
+                        <td class="py-2.5 px-3 text-right space-x-1">
+                            <button onclick="openRouteDefModal('${escapeHtml(r.id)}')" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold cursor-pointer">✎</button>
+                            <button onclick="deleteRouteDef('${escapeHtml(r.id)}')" class="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-500 text-xs font-bold cursor-pointer">✕</button>
+                        </td>
+                    ` : ''}
+                </tr>
+            `).join('');
+        }
+
+        function openRouteDefModal(routeId = null) {
+            const modal = document.getElementById('routeDefModal');
+            if (routeId) {
+                const r = appState.routes.find(x => x.id === routeId);
+                if (!r) return;
+                document.getElementById('editRouteDefId').value = r.id;
+                document.getElementById('routeCodeInput').value = r.code;
+                document.getElementById('routeNameInput').value = r.name;
+                document.getElementById('routeBaseMinutesInput').value = r.baseMinutes;
+                document.getElementById('routeSeasonInput').value = r.season || 'Standard';
+            } else {
+                document.getElementById('editRouteDefId').value = '';
+                document.getElementById('routeCodeInput').value = '';
+                document.getElementById('routeNameInput').value = '';
+                document.getElementById('routeBaseMinutesInput').value = 240;
+                document.getElementById('routeSeasonInput').value = 'Standard';
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRouteDefModal() {
+            const modal = document.getElementById('routeDefModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveRouteDefFromModal() {
+            const editId = document.getElementById('editRouteDefId').value;
+            const code = (document.getElementById('routeCodeInput').value || '').trim();
+            const name = (document.getElementById('routeNameInput').value || '').trim();
+            const baseMinutes = Math.max(10, parseInt(document.getElementById('routeBaseMinutesInput').value, 10) || 240);
+            const season = (document.getElementById('routeSeasonInput').value || 'Standard').trim();
+
+            if (!code || !name) {
+                showToast('Podaj numer oraz nazwę rejonu!', 'warning');
+                return;
+            }
+
+            if (editId) {
+                const idx = appState.routes.findIndex(r => r.id === editId);
+                if (idx !== -1) appState.routes[idx] = { ...appState.routes[idx], code, name, baseMinutes, season };
+            } else {
+                appState.routes.push({ id: 'r_' + Date.now(), code, name, baseMinutes, season });
+            }
+
+            saveRoutesLocal();
+            closeRouteDefModal();
+            renderRoutesDefTable();
+            renderActiveRoutesList();
+            showToast(t('toast_saved'), 'success');
+        }
+
+        function deleteRouteDef(routeId) {
+            appState.routes = appState.routes.filter(r => r.id !== routeId);
+            saveRoutesLocal();
+            renderRoutesDefTable();
+            renderActiveRoutesList();
+        }
+
+        // =========================================================================
+        // SYNCHRONIZACJA Z GOOGLE SHEETS
+        // =========================================================================
+        function saveGoogleWebhook() {
+            const val = (document.getElementById('googleWebhookInput').value || '').trim();
+            localStorage.setItem(STORAGE_KEYS.WEBHOOK, val || DEFAULT_SCRIPT_URL);
+            showToast(t('toast_saved'), 'success');
+        }
+
+        function resetDefaultWebhook() {
+            localStorage.setItem(STORAGE_KEYS.WEBHOOK, DEFAULT_SCRIPT_URL);
+            document.getElementById('googleWebhookInput').value = DEFAULT_SCRIPT_URL;
+            showToast(t('toast_saved'), 'info');
+        }
+
+        function updatePendingBadge() {
+            const pendingCount = appState.shifts.filter(s => !s.synced).length;
+            const badge = document.getElementById('pendingSyncBadge');
+            const info = document.getElementById('pendingQueueInfo');
+            if (badge) {
+                badge.textContent = String(pendingCount);
+                badge.classList.toggle('hidden', pendingCount === 0);
+            }
+            if (info) {
+                info.textContent = `Oczekujące wpisy offline: ${pendingCount}`;
+            }
+        }
+
+        async function sendShiftToGoogleSheets(shiftObj, silent = false) {
+            const url = getActiveWebhookUrl();
+            if (!url) return false;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(shiftObj)
+                });
+                const idx = appState.shifts.findIndex(s => s.id === shiftObj.id);
+                if (idx !== -1) {
+                    appState.shifts[idx].synced = true;
+                    saveShiftsLocal();
+                }
+                renderRecentShifts();
+                if (!silent) showToast(t('toast_gs_ok'), 'success');
+                return true;
+            } catch (e) {
+                if (!silent) showToast(t('toast_gs_offline'), 'warning');
+                return false;
+            }
+        }
+
+        async function syncAllPending(silent = false) {
+            const pending = appState.shifts.filter(s => !s.synced);
+            if (pending.length === 0) {
+                if (!silent) showToast('Wszystkie wpisy są już zsynchronizowane.', 'info');
+                return;
+            }
+            for (const item of pending) {
+                await sendShiftToGoogleSheets(item, true);
+            }
+            if (!silent) showToast(`Zsynchronizowano ${pending.length} wpisów.`, 'success');
+        }
+
+        async function fetchGoogleSheetsPayload(action = 'sync') {
+            const baseUrl = getActiveWebhookUrl();
+            const sep = baseUrl.includes('?') ? '&' : '?';
+            const fullUrl = `${baseUrl}${sep}action=${encodeURIComponent(action)}&_ts=${Date.now()}`;
+            const resp = await fetch(fullUrl, { method: 'GET', cache: 'no-store' });
+            return await resp.json();
+        }
+
+        function mergeUsersLists(localUsers, remoteUsers) {
+            const map = new Map();
+            localUsers.forEach(u => map.set(String(u.pin), u));
+            remoteUsers.forEach(ru => {
+                if (!ru || !ru.pin) return;
+                const pinKey = String(ru.pin).padStart(4, '0').slice(-4);
+                map.set(pinKey, {
+                    id: ru.id || ('u_gs_' + pinKey),
+                    name: ru.name || 'Kurier',
+                    employeeNumber: ru.employeeNumber || '1000',
+                    pin: pinKey,
+                    role: ru.role === 'ADMIN' ? 'ADMIN' : 'USER',
+                    active: ru.active !== false
+                });
+            });
+            return Array.from(map.values());
+        }
+
+        async function syncUsersFromGoogleSheets(manualClick = false) {
+            const statusEl = document.getElementById('loginSyncStatus');
+            try {
+                const payload = await fetchGoogleSheetsPayload('getUsers');
+                const remoteUsers = Array.isArray(payload.users) ? payload.users : [];
+                if (remoteUsers.length > 0) {
+                    appState.users = mergeUsersLists(appState.users, remoteUsers);
+                    saveUsersLocal();
+                    if (appState.currentUser) renderTeamList();
+                    if (statusEl) statusEl.textContent = `✓ Zsynchronizowano konta z Google Sheets (${appState.users.length})`;
+                    if (manualClick) showToast(`Pobrano ${remoteUsers.length} kont z Google Sheets!`, 'success');
+                } else if (manualClick) {
+                    showToast('Zakładka "Uzytkownicy" w arkuszu jest pusta – użyj "Zapisz zespół w Google".', 'info');
+                }
+            } catch (e) {
+                if (manualClick) showToast('Nie udało się połączyć z Google Sheets.', 'warning');
+            }
+        }
+
+        async function pushUsersToGoogleSheets(silent = false) {
+            const url = getActiveWebhookUrl();
+            const diagBox = document.getElementById('teamSyncDiagnosticBox');
+            if (!url) return;
+
+            const showDiag = (htmlMsg, styleType) => {
+                if (!diagBox || silent) return;
+                const styles = {
+                    ok: 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300',
+                    warn: 'bg-amber-500/10 border-amber-500/40 text-amber-800 dark:text-amber-200',
+                    err: 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
+                };
+                diagBox.className = `mb-4 p-3.5 rounded-2xl text-xs font-semibold border ${styles[styleType] || styles.warn}`;
+                diagBox.innerHTML = htmlMsg;
+                diagBox.classList.remove('hidden');
+            };
+
+            try {
+                const compactUsers = appState.users.map(u => [
+                    u.id || '',
+                    u.name || '',
+                    u.employeeNumber || '',
+                    String(u.pin || ''),
+                    u.role || 'USER',
+                    u.active !== false ? 1 : 0
+                ]);
+                const sep = url.includes('?') ? '&' : '?';
+                const getSaveUrl = `${url}${sep}action=saveUsers&u=${encodeURIComponent(JSON.stringify(compactUsers))}&_ts=${Date.now()}`;
+
+                let result = null;
+                let fetchError = null;
+                try {
+                    const resp = await fetch(getSaveUrl, { method: 'GET', cache: 'no-store' });
+                    result = await resp.json();
+                } catch (getErr) {
+                    fetchError = getErr;
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'saveUsers', users: appState.users })
+                    });
+                }
+
+                if (result && result.status === 'ok' && typeof result.savedUsers === 'number') {
+                    const fileInfo = result.spreadsheetName ? ` w arkuszu <strong>"${escapeHtml(result.spreadsheetName)}"</strong>` : '';
+                    showDiag(`✓ Zapisano <strong>${result.savedUsers}</strong> pracowników w zakładce <strong>"Uzytkownicy"</strong>${fileInfo}.`, 'ok');
+                    if (!silent) showToast(`Zapisano ${result.savedUsers} pracowników w Google Sheets!`, 'success');
+                    return;
+                }
+
+                if (Array.isArray(result) || (result && result.status === 'ok' && typeof result.savedUsers === 'undefined')) {
+                    showDiag(
+                        `⚠️ Połączono z Google, ale ten adres <code>/exec</code> uruchamia jeszcze <strong>starą wersję skryptu</strong> (bez obsługi zakładki "Uzytkownicy").<br>` +
+                        `W edytorze Apps Script kliknij: <strong>Wdróż → Zarządzaj wdrożeniami → ikona ołówka (Edytuj) → Wersja: Nowa wersja → Wdróż</strong> (albo wklej nowy adres <code>/exec</code> w zakładce Ustawienia).`,
+                        'warn'
+                    );
+                    if (!silent) showToast('Adres /exec używa starej wersji skryptu w Google.', 'warning');
+                    return;
+                }
+
+                const check = await fetchGoogleSheetsPayload('getUsers');
+                const remoteUsers = Array.isArray(check.users) ? check.users : [];
+
+                if (remoteUsers.length > 0) {
+                    const fileInfo = check.spreadsheetName ? ` w arkuszu <strong>"${escapeHtml(check.spreadsheetName)}"</strong>` : '';
+                    showDiag(`✓ Zapisano <strong>${remoteUsers.length}</strong> pracowników w zakładce <strong>"Uzytkownicy"</strong>${fileInfo}.`, 'ok');
+                    if (!silent) showToast(`Zapisano ${remoteUsers.length} pracowników w zakładce "Uzytkownicy"!`, 'success');
+                } else {
+                    const errDetail = fetchError ? ` (${escapeHtml(String(fetchError.message || fetchError))})` : '';
+                    showDiag(
+                        `⚠️ Brak odpowiedzi potwierdzającej zapis z Google Apps Script${errDetail}.<br>` +
+                        `Sprawdź w Apps Script: <strong>Wdróż → Zarządzaj wdrożeniami → Edytuj (ołówek) → Wersja: Nowa wersja → Wdróż</strong> (dostęp: <em>Każdy</em>).`,
+                        'warn'
+                    );
+                }
+            } catch (e) {
+                showDiag(`✕ Błąd połączenia z Google Sheets: ${escapeHtml(String(e.message || e))}`, 'err');
+                if (!silent) showToast('Błąd połączenia z Google Sheets.', 'error');
+            }
+        }
+
+        async function pullFromGoogleSheets() {
+            try {
+                const payload = await fetchGoogleSheetsPayload('sync');
+                if (Array.isArray(payload.users) && payload.users.length > 0) {
+                    appState.users = mergeUsersLists(appState.users, payload.users);
+                    saveUsersLocal();
+                }
+                const remoteShifts = Array.isArray(payload.shifts) ? payload.shifts : [];
+                if (remoteShifts.length > 0) {
+                    const existingIds = new Set(appState.shifts.map(s => s.id));
+                    let added = 0;
+                    remoteShifts.forEach(rs => {
+                        if (!existingIds.has(rs.id)) {
+                            const matchedUser = appState.users.find(u => u.name === rs.userName || String(u.employeeNumber) === String(rs.employeeNumber));
+                            appState.shifts.push({
+                                id: rs.id,
+                                userId: matchedUser ? matchedUser.id : (appState.currentUser ? appState.currentUser.id : 'u_unknown'),
+                                userName: rs.userName || 'Kurier',
+                                employeeNumber: rs.employeeNumber || '1000',
+                                date: rs.date,
+                                startTime: rs.startTime || '00:00',
+                                endTime: rs.endTime || '00:00',
+                                pauseMinutes: 0,
+                                durationSeconds: (Number(rs.durationMinutes) || 0) * 60,
+                                durationMinutes: Number(rs.durationMinutes) || 0,
+                                durationDecimal: Number(rs.durationDecimal) || 0,
+                                workType: rs.workType || 'distribution',
+                                routes: [],
+                                routesSummary: rs.routesSummary || '',
+                                estimatedMinutes: Number(rs.estimatedMinutes) || 0,
+                                source: rs.source || 'timer',
+                                synced: true
+                            });
+                            added++;
+                        }
+                    });
+                    saveShiftsLocal();
+                    renderReports();
+                    showToast(`Pobrano z Google Sheets (nowych wpisów: ${added}).`, 'success');
+                } else {
+                    showToast('Brak wpisów w zakładce Raporty w Google Sheets.', 'info');
+                }
+            } catch (e) {
+                showToast('Błąd pobierania danych z Google Sheets.', 'error');
+            }
+        }
+
+        function getCleanAppsScriptCode() {
+            return [
+                'function getOrCreateSheets_() {',
+                '  var ss = SpreadsheetApp.getActiveSpreadsheet();',
+                '  var repSheet = ss.getSheetByName("Raporty");',
+                '  if (!repSheet) {',
+                '    repSheet = ss.insertSheet("Raporty");',
+                '    repSheet.appendRow(["ID", "Data", "Pracownik", "Nr_pracownika", "Typ_pracy", "Trasy", "Faktyczny_min", "Faktyczny_h", "Szacowany_tras_min_INFO", "Start", "Koniec", "Zrodlo"]);',
+                '    repSheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#002B49").setFontColor("#FFFFFF");',
+                '    repSheet.setFrozenRows(1);',
+                '  }',
+                '  var usrSheet = ss.getSheetByName("Uzytkownicy");',
+                '  if (!usrSheet) {',
+                '    usrSheet = ss.insertSheet("Uzytkownicy");',
+                '    usrSheet.appendRow(["ID", "Imie", "Nr_pracownika", "PIN", "Rola", "Aktywny"]);',
+                '    usrSheet.getRange(1, 1, 1, 6).setFontWeight("bold").setBackground("#0077C8").setFontColor("#FFFFFF");',
+                '    usrSheet.setFrozenRows(1);',
+                '  }',
+                '  return { ss: ss, repSheet: repSheet, usrSheet: usrSheet };',
+                '}',
+                '',
+                'function utworzZakladkiRecznie() {',
+                '  getOrCreateSheets_();',
+                '  SpreadsheetApp.flush();',
+                '}',
+                '',
+                'function saveUsersToSheet(users) {',
+                '  var sheets = getOrCreateSheets_();',
+                '  var usrSheet = sheets.usrSheet;',
+                '  if (usrSheet.getLastRow() > 1) {',
+                '    usrSheet.getRange(2, 1, usrSheet.getLastRow() - 1, 6).clearContent();',
+                '  }',
+                '  if (users && users.length > 0) {',
+                '    var rows = users.map(function(u) {',
+                '      return [u.id || "", u.name || "", u.employeeNumber || "", "\'" + String(u.pin || ""), u.role || "USER", u.active !== false ? "TAK" : "NIE"];',
+                '    });',
+                '    usrSheet.getRange(2, 1, rows.length, 6).setValues(rows);',
+                '  }',
+                '  SpreadsheetApp.flush();',
+                '}',
+                '',
+                'function doPost(e) {',
+                '  try {',
+                '    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";',
+                '    var data = JSON.parse(raw);',
+                '    if (data && data.action === "saveUsers" && Array.isArray(data.users)) {',
+                '      saveUsersToSheet(data.users);',
+                '      return ContentService.createTextOutput(JSON.stringify({ status: "ok", savedUsers: data.users.length })).setMimeType(ContentService.MimeType.JSON);',
+                '    }',
+                '    var sheets = getOrCreateSheets_();',
+                '    var repSheet = sheets.repSheet;',
+                '    var typeLabel = data.workType === "sorting" ? "Sortowanie" : "Dystrybucja";',
+                '    repSheet.appendRow([',
+                '      data.id || "",',
+                '      data.date || "",',
+                '      data.userName || "",',
+                '      data.employeeNumber || "",',
+                '      typeLabel,',
+                '      data.routesSummary || "",',
+                '      Number(data.durationMinutes) || 0,',
+                '      Number(data.durationDecimal) || 0,',
+                '      Number(data.estimatedMinutes) || 0,',
+                '      data.startTime || "",',
+                '      data.endTime || "",',
+                '      data.source || "timer"',
+                '    ]);',
+                '    SpreadsheetApp.flush();',
+                '    return ContentService.createTextOutput(JSON.stringify({ status: "ok" })).setMimeType(ContentService.MimeType.JSON);',
+                '  } catch (err) {',
+                '    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: String(err) })).setMimeType(ContentService.MimeType.JSON);',
+                '  }',
+                '}',
+                '',
+                'function doGet(e) {',
+                '  try {',
+                '    var sheets = getOrCreateSheets_();',
+                '    var usrSheet = sheets.usrSheet;',
+                '    var repSheet = sheets.repSheet;',
+                '    if (e && e.parameter && e.parameter.action === "saveUsers" && e.parameter.u) {',
+                '      var rawList = JSON.parse(e.parameter.u);',
+                '      var parsedUsers = rawList.map(function(arr) {',
+                '        return { id: arr[0], name: arr[1], employeeNumber: arr[2], pin: arr[3], role: arr[4], active: arr[5] !== 0 };',
+                '      });',
+                '      saveUsersToSheet(parsedUsers);',
+                '      return ContentService.createTextOutput(JSON.stringify({ status: "ok", savedUsers: parsedUsers.length, spreadsheetName: sheets.ss.getName() })).setMimeType(ContentService.MimeType.JSON);',
+                '    }',
+                '    var users = [];',
+                '    if (usrSheet.getLastRow() > 1) {',
+                '      var uVals = usrSheet.getRange(2, 1, usrSheet.getLastRow() - 1, 6).getValues();',
+                '      uVals.forEach(function(r, idx) {',
+                '        var pinStr = String(r[3] || "").replace(/^\'/, "").trim();',
+                '        if (r[1] && pinStr) {',
+                '          users.push({',
+                '            id: String(r[0] || ("u_sheet_" + idx)),',
+                '            name: String(r[1]),',
+                '            employeeNumber: String(r[2] || "1000"),',
+                '            pin: pinStr.padStart(4, "0").slice(-4),',
+                '            role: String(r[4] || "USER").toUpperCase() === "ADMIN" ? "ADMIN" : "USER",',
+                '            active: String(r[5] || "TAK").toUpperCase() !== "NIE"',
+                '          });',
+                '        }',
+                '      });',
+                '    }',
+                '    var shifts = [];',
+                '    if (repSheet.getLastRow() > 1) {',
+                '      var sVals = repSheet.getRange(2, 1, repSheet.getLastRow() - 1, 12).getValues();',
+                '      sVals.forEach(function(r) {',
+                '        if (r[0] && r[1]) {',
+                '          var dVal = r[1] instanceof Date ? Utilities.formatDate(r[1], Session.getScriptTimeZone(), "yyyy-MM-dd") : String(r[1]);',
+                '          shifts.push({',
+                '            id: String(r[0]),',
+                '            date: dVal,',
+                '            userName: String(r[2] || ""),',
+                '            employeeNumber: String(r[3] || ""),',
+                '            workType: String(r[4] || "").toLowerCase().indexOf("sort") !== -1 ? "sorting" : "distribution",',
+                '            routesSummary: String(r[5] || ""),',
+                '            durationMinutes: Number(r[6]) || 0,',
+                '            durationDecimal: Number(r[7]) || 0,',
+                '            estimatedMinutes: Number(r[8]) || 0,',
+                '            startTime: String(r[9] || ""),',
+                '            endTime: String(r[10] || ""),',
+                '            source: String(r[11] || "timer")',
+                '          });',
+                '        }',
+                '      });',
+                '    }',
+                '    return ContentService.createTextOutput(JSON.stringify({ status: "ok", spreadsheetName: sheets.ss.getName(), users: users, shifts: shifts })).setMimeType(ContentService.MimeType.JSON);',
+                '  } catch (err) {',
+                '    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: String(err) })).setMimeType(ContentService.MimeType.JSON);',
+                '  }',
+                '}'
+            ].join('\n');
+        }
+
+        function copyAppsScript() {
+            const code = getCleanAppsScriptCode();
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('Skopiowano kod Google Apps Script do schowka!', 'success');
+            } catch (e) {
+                showToast('Zaznacz i skopiuj kod ręcznie z okna poniżej.', 'warning');
+            }
+            document.body.removeChild(ta);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (!appState.currentUser) {
+                if (e.key >= '0' && e.key <= '9') {
+                    pressPinDigit(e.key);
+                } else if (e.key === 'Backspace') {
+                    backspacePin();
+                } else if (e.key === 'Escape') {
+                    clearPin();
+                }
+            }
+        });
+
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
