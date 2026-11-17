@@ -1169,7 +1169,10 @@
     <!-- LOGIKA APLIKACJI JAVASCRIPT                                               -->
     <!-- ========================================================================= -->
     <script>
-        const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWXCqx_27D6FpmkCZladB1pWAlxs9H3xjj6MFKbuxMKu7BiAO8aIDHDdla7Eg7sGHmCg/exec';
+        const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjeNuAwftQ1cE7FjtIAxsO6YEk6h0X_YShosWxSvlV0m6TusXuHDeSd27q8nv427VxHA/exec';
+        const LEGACY_SCRIPT_URLS = [
+            'https://script.google.com/macros/s/AKfycbzWXCqx_27D6FpmkCZladB1pWAlxs9H3xjj6MFKbuxMKu7BiAO8aIDHDdla7Eg7sGHmCg/exec'
+        ];
 
         const STORAGE_KEYS = {
             USERS: 'premo_tid_users_v6',
@@ -1689,7 +1692,12 @@
         }
 
         function getActiveWebhookUrl() {
-            return (localStorage.getItem(STORAGE_KEYS.WEBHOOK) || DEFAULT_SCRIPT_URL).trim();
+            const saved = (localStorage.getItem(STORAGE_KEYS.WEBHOOK) || '').trim();
+            if (!saved || LEGACY_SCRIPT_URLS.includes(saved)) {
+                localStorage.setItem(STORAGE_KEYS.WEBHOOK, DEFAULT_SCRIPT_URL);
+                return DEFAULT_SCRIPT_URL;
+            }
+            return saved;
         }
 
         function showToast(message, type = 'info') {
@@ -3317,53 +3325,47 @@
             const baseUrl = getActiveWebhookUrl();
             const sep = baseUrl.includes('?') ? '&' : '?';
             const fullUrl = `${baseUrl}${sep}action=${encodeURIComponent(action)}&_ts=${Date.now()}`;
-            const resp = await fetch(fullUrl, { method: 'GET', cache: 'no-store' });
-            return await resp.json();
+            try {
+                const resp = await fetch(fullUrl, {
+                    method: 'GET',
+                    credentials: 'omit',
+                    redirect: 'follow',
+                    cache: 'no-store'
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                return await resp.json();
+            } catch (firstErr) {
+                const respFallback = await fetch(fullUrl, { method: 'GET', cache: 'no-store' });
+                if (!respFallback.ok) throw new Error(`HTTP ${respFallback.status}`);
+                return await respFallback.json();
+            }
         }
 
         function mergeUsersLists(localUsers, remoteUsers) {
             const map = new Map();
-            localUsers.forEach(u => map.set(String(u.pin), u));
-            remoteUsers.forEach(ru => {
-                if (!ru || !ru.pin) return;
-                const pinKey = String(ru.pin).padStart(4, '0').slice(-4);
-                const existing = map.get(pinKey);
-                const mergedKpDays = Array.isArray(ru.kpDays)
-                    ? normalizeKpDays(ru)
-                    : (typeof ru.isKP === 'boolean'
-                        ? (ru.isKP ? (existing && Array.isArray(existing.kpDays) && existing.kpDays.length > 0 ? existing.kpDays : [1, 2, 3, 4, 5, 6, 0]) : [])
-                        : normalizeKpDays(existing));
-                map.set(pinKey, {
-                    id: ru.id || (existing ? existing.id : ('u_gs_' + pinKey)),
-                    name: ru.name || 'Kurier',
-                    employeeNumber: ru.employeeNumber || '1000',
-                    pin: pinKey,
-                    role: ru.role === 'ADMIN' ? 'ADMIN' : 'USER',
-                    kpDays: mergedKpDays,
-                    isKP: mergedKpDays.length > 0,
-                    active: ru.active !== false
-                });
-            });
-            return Array.from(map.values());
-        }
-
-        async function syncUsersFromGoogleSheets(manualClick = false) {
-            const statusEl = document.getElementById('loginSyncStatus');
-            try {
-                const payload = await fetchGoogleSheetsPayload('getUsers');
-                const remoteUsers = Array.isArray(payload.users) ? payload.users : [];
-                if (remoteUsers.length > 0) {
-                    appState.users = mergeUsersLists(appState.users, remoteUsers);
-                    saveUsersLocal();
-                    if (appState.activeTab === 'team') renderTeamList();
-                    if (statusEl) statusEl.textContent = `✓ Zsynchronizowano konta (${appState.users.length})`;
-                    if (manualClick) showToast(`Pobrano ${remoteUsers.length} kont z Google Sheets!`, 'success');
-                } else if (manualClick) {
-                    showToast('Zakładka "Uzytkownicy" w arkuszu jest pusta.', 'info');
+            (Array.isArray(localUsers) ? localUsers : []).forEach(u => {
+                if (u && u.id) {
+                    const kpDays = normalizeKpDays(u);
+                    map.set(u.id, { ...u, kpDays, isKP: kpDays.length > 0 });
                 }
-            } catch (e) {
-                if (manualClick) showToast('Nie udało się pobrać kont z Google Sheets.', 'warning');
-            }
+            });
+            (Array.isArray(remoteUsers) ? remoteUsers : []).forEach(ru => {
+                if (ru && ru.id && ru.name && ru.pin) {
+                    const kpDays = normalizeKpDays(ru);
+                    map.set(ru.id, {
+                        id: String(ru.id),
+                        name: String(ru.name),
+                        employeeNumber: String(ru.employeeNumber || '1000'),
+                        pin: String(ru.pin).padStart(4, '0').slice(-4),
+                        role: String(ru.role || 'USER').toUpperCase() === 'ADMIN' ? 'ADMIN' : 'USER',
+                        active: ru.active !== false,
+                        kpDays,
+                        isKP: kpDays.length > 0
+                    });
+                }
+            });
+            const merged = Array.from(map.values());
+            return merged.length > 0 ? merged : JSON.parse(JSON.stringify(DEFAULT_USERS));
         }
 
         async function pushUsersToGoogleSheets(silent = false) {
@@ -3384,24 +3386,21 @@
             };
 
             try {
-                const compactUsers = appState.users.map(u => {
-                    const days = normalizeKpDays(u);
-                    return [
-                        u.id || '',
-                        u.name || '',
-                        u.employeeNumber || '1000',
-                        String(u.pin || ''),
-                        u.role || 'USER',
-                        u.active !== false ? 1 : 0,
-                        days.join(',')
-                    ];
-                });
+                const compactUsers = appState.users.map(u => [
+                    u.id || '',
+                    u.name || '',
+                    u.employeeNumber || '1000',
+                    String(u.pin || '').padStart(4, '0').slice(-4),
+                    u.role || 'USER',
+                    u.active !== false ? 1 : 0,
+                    normalizeKpDays(u).join(',')
+                ]);
                 const sep = url.includes('?') ? '&' : '?';
                 const getSaveUrl = `${url}${sep}action=saveUsers&u=${encodeURIComponent(JSON.stringify(compactUsers))}&_ts=${Date.now()}`;
 
                 let result = null;
                 try {
-                    const resp = await fetch(getSaveUrl, { method: 'GET', cache: 'no-store' });
+                    const resp = await fetch(getSaveUrl, { method: 'GET', credentials: 'omit', redirect: 'follow', cache: 'no-store' });
                     result = await resp.json();
                 } catch (getErr) {
                     await fetch(url, {
@@ -3415,11 +3414,68 @@
                 if (result && result.status === 'ok' && typeof result.savedUsers === 'number') {
                     const fileInfo = result.spreadsheetName ? ` w arkuszu <strong>"${escapeHtml(result.spreadsheetName)}"</strong>` : '';
                     showDiag(`✓ Zapisano <strong>${result.savedUsers}</strong> pracowników w zakładce <strong>"Uzytkownicy"</strong>${fileInfo}.`, 'ok');
-                    if (!silent) showToast(`Zapisano ${result.savedUsers} kont w Google Sheets!`, 'success');
+                    if (!silent) showToast(`Zapisano ${result.savedUsers} pracowników w Google Sheets!`, 'success');
+                    return;
+                }
+
+                if (result && result.status === 'ok' && typeof result.savedUsers === 'undefined') {
+                    showDiag(
+                        `⚠️ Połączono z Google, ale Twój link <code>/exec</code> nadal wskazuje na <strong>starą wersję wdrożenia</strong>.<br>` +
+                        `Wejdź w Arkusz Google → <strong>Rozszerzenia → Apps Script → Wdróż → Zarządzaj wdrożeniami → Edytuj (ołówek) → Wersja: Nowa wersja → Wdróż</strong>.`,
+                        'warn'
+                    );
+                    if (!silent) showToast('Zaktualizuj wdrożenie w Google Apps Script (Nowa wersja).', 'warning');
                 }
             } catch (e) {
                 showDiag(`✕ Błąd połączenia z Google Sheets: ${escapeHtml(String(e.message || e))}`, 'err');
                 if (!silent) showToast('Błąd zapisu zespołu w Google Sheets.', 'error');
+            }
+        }
+
+        async function syncUsersFromGoogleSheets(manualClick = false) {
+            const statusEl = document.getElementById('loginSyncStatus');
+            if (statusEl) statusEl.textContent = '⏳ Łączenie z Google Sheets...';
+            try {
+                const payload = await fetchGoogleSheetsPayload('sync');
+                const remoteUsers = Array.isArray(payload.users) ? payload.users : [];
+                if (remoteUsers.length > 0) {
+                    appState.users = mergeUsersLists(appState.users, remoteUsers);
+                    saveUsersLocal();
+                    if (appState.activeTab === 'team') renderTeamList();
+                }
+
+                const remoteRoutes = Array.isArray(payload.routes) ? payload.routes : [];
+                if (remoteRoutes.length > 0) {
+                    appState.routes = remoteRoutes.map((rr, idx) => {
+                        const baseMins = Math.max(10, Number(rr.baseMinutes) || 240);
+                        const dayMinutes = parseDayMinutesString(rr.dayMinutes, baseMins);
+                        return {
+                            id: rr.id || ('r_gs_' + idx),
+                            code: String(rr.code || '').trim(),
+                            name: String(rr.name || '').trim(),
+                            baseMinutes: baseMins,
+                            dayMinutes,
+                            season: String(rr.season || 'Standard').trim()
+                        };
+                    }).filter(r => r.code && r.name);
+                    saveRoutesLocal();
+                    renderRoutesDefTable();
+                    renderActiveRoutesList();
+                }
+
+                if (statusEl) {
+                    statusEl.textContent = remoteUsers.length > 0
+                        ? `✓ Zsynchronizowano konta (${appState.users.length}) i trasy (${appState.routes.length})`
+                        : '✓ Połączono z Google Sheets (brak dodatkowych kont w arkuszu)';
+                }
+                if (manualClick) {
+                    showToast(`Pobrano z Google Sheets: ${remoteUsers.length} kont, ${remoteRoutes.length} tras.`, 'success');
+                }
+            } catch (e) {
+                if (statusEl) {
+                    statusEl.textContent = '⚠️ Brak połączenia z Google Sheets (sprawdź internet lub wyłącz blokadę śledzenia/AdBlock dla tej strony)';
+                }
+                if (manualClick) showToast('Nie udało się połączyć z Google Sheets. Sprawdź ustawienia przeglądarki (AdBlock / Anti-Tracking).', 'warning');
             }
         }
 
@@ -3898,7 +3954,6 @@
             }, 1000);
 
             syncUsersFromGoogleSheets(false);
-            syncRoutesFromGoogleSheets(false);
         }
 
         document.addEventListener('keydown', function(e) {
